@@ -2,6 +2,18 @@
 	import * as Empty from '$lib/components/ui/empty/index.js';
 	import { Button, buttonVariants } from '$lib/components/ui/button/index.js';
 	import { ImageIcon } from '@lucide/svelte';
+
+	type Props = {
+		onfiles: (files: File[]) => void;
+	};
+
+	const { onfiles }: Props = $props();
+
+	const handleFiles = (event: Event) => {
+		const input = event.target as HTMLInputElement;
+		if (!input.files) return;
+		onfiles(Array.from(input.files));
+	};
 </script>
 
 <Empty.Root>

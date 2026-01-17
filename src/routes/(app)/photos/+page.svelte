@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	import * as Sidebar from '$lib/components/ui/sidebar';
+	import { handleFiles } from '$lib/logic/upload';
 	import type { PageProps } from './$types';
 	import Empty from './empty.svelte';
 
@@ -18,7 +19,7 @@
 
 	{#if data.pagination.total === 0}
 		<div class="grid min-h-0 flex-1 place-items-center">
-			<Empty />
+			<Empty onfiles={handleFiles} />
 		</div>
 	{:else}
 		<div class="grid grid-cols-2 gap-4">
