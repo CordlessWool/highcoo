@@ -1,14 +1,37 @@
 <script lang="ts">
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
-	import AppSidebar from '$lib/components/app-sidebar.svelte';
+	import { Images, LayoutDashboardIcon } from '@lucide/svelte';
 
 	let { children } = $props();
 </script>
 
 <Sidebar.Provider>
-	<AppSidebar />
-	<main>
-		<Sidebar.Trigger />
-		{@render children?.()}
-	</main>
+	<Sidebar.Root variant="floating">
+		<Sidebar.Header>
+			<span class="text-lg font-semibold">highcoo</span>
+		</Sidebar.Header>
+		<Sidebar.Content>
+			<Sidebar.Menu>
+				<Sidebar.MenuItem>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href="/" {...props}>
+								<LayoutDashboardIcon />
+								<span>Dashboard</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+					<Sidebar.MenuButton>
+						{#snippet child({ props })}
+							<a href="/photos" {...props}>
+								<Images />
+								<span>Photos</span>
+							</a>
+						{/snippet}
+					</Sidebar.MenuButton>
+				</Sidebar.MenuItem>
+			</Sidebar.Menu>
+		</Sidebar.Content>
+	</Sidebar.Root>
+	{@render children?.()}
 </Sidebar.Provider>
