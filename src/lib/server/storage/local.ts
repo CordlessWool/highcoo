@@ -18,9 +18,8 @@ export class LocalStorageAdapter implements StorageAdapter {
 	async save(file: File, hash: string): Promise<string> {
 		await mkdir(this.basePath, { recursive: true });
 		const filePath = this.getFilePath(hash);
-		console.log('save file');
 		const writeStream = createWriteStream(filePath);
-		const readable = Readable.fromWeb(file.stream());
+		const readable = Readable.fromWeb(file.stream() as import('stream/web').ReadableStream);
 
 		await new Promise((resolve, reject) => {
 			readable.pipe(writeStream);

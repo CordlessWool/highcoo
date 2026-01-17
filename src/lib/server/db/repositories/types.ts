@@ -1,5 +1,5 @@
 import type { File } from '../schema';
-
+export type { File };
 export type NewFile = Omit<File, 'createdAt'> & { createdAt?: Date };
 
 export interface FileRepository {
