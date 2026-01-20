@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as Layout from '$lib/components/layout';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
+	import { UploadButton } from '$lib/components/media';
 	import { handleFiles } from '$lib/logic/upload';
 	import type { PageProps } from './$types';
 	import Empty from './empty.svelte';
@@ -10,7 +11,13 @@
 
 <main class="flex min-h-screen w-full flex-col p-2">
 	<ButtonGroup.Root>
-		<Layout.SidebarTriggerButton variant="secondary" />
+		<ButtonGroup.Root>
+			<Layout.SidebarTriggerButton variant="secondary" />
+		</ButtonGroup.Root>
+
+		<ButtonGroup.Root>
+			<UploadButton onfiles={handleFiles} />
+		</ButtonGroup.Root>
 	</ButtonGroup.Root>
 
 	{#if data.photos.length === 0}
@@ -18,7 +25,7 @@
 			<Empty onfiles={handleFiles} />
 		</div>
 	{:else}
-		<div class="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
+		<div class="grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-5">
 			{#each data.photos as photo (photo.hash)}
 				<div class="flex aspect-square items-center justify-center">
 					<img
