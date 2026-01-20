@@ -29,3 +29,6 @@ project.inlang/cache/
 
 # SQLite
 *.db
+
+# Data
+uploads
