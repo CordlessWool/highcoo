@@ -25,10 +25,10 @@
 		{@render children()}
 	</div>
 	<Dialog.Content
-		class="max-h-[90vh] max-w-[90vw] border-none bg-white p-4 pb-16 shadow-2xl"
+		class="inline-flex flex-col gap-0 border-none bg-white p-2 pb-0 shadow-lg ring-0 outline-none"
 		showCloseButton={false}
 	>
-		<img {src} {alt} class="max-h-[calc(90vh-5rem)] max-w-full object-contain" />
-		<p class="absolute right-0 bottom-4 left-0 text-center text-sm text-gray-600">{alt}</p>
+		<img {src} {alt} class="object-contain" />
+		<p class="my-5 text-center text-sm text-gray-600">{alt}</p>
 	</Dialog.Content>
 </Dialog.Root>
