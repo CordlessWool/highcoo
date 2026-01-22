@@ -1,10 +1,12 @@
 <script lang="ts">
 	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import { Toaster } from 'svelte-sonner';
 	import { Images, LayoutDashboardIcon } from '@lucide/svelte';
 
 	let { children } = $props();
 </script>
 
+<Toaster />
 <Sidebar.Provider>
 	<Sidebar.Root variant="floating">
 		<Sidebar.Header>

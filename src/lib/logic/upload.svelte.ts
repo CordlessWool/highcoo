@@ -1,6 +1,8 @@
 import { createSHA256 } from 'hash-wasm';
 import * as v from 'valibot';
+import { toast } from 'svelte-sonner';
 import { BatchProcessor } from './batch-processor';
+import type { UploadContext } from '$lib/components/load/upload-context.svelte';
 
 export const FileUpload = v.object({
 	file: v.pipe(v.file(), v.mimeType(['image/jpeg', 'image/png', 'image/gif', 'image/webp'])),
@@ -8,6 +10,13 @@ export const FileUpload = v.object({
 });
 
 export type FileUpload = v.InferOutput<typeof FileUpload>;
+
+type UploadItem = { file: File; hash: string };
+
+export enum UPLOAD_STATUS {
+	UPLOADED = 'UPLOADED',
+	DUPLICATE = 'DUPLICATE'
+}
 
 const hashFile = async (file: File): Promise<string> => {
 	const hasher = await createSHA256();
@@ -33,25 +42,53 @@ const uploadFile = async (file: File, hash: string): Promise<void> => {
 	formData.append('file', file);
 	formData.append('hash', hash);
 
-	await fetch('/api/files/upload', {
+	const res = await fetch('/api/files/upload', {
 		method: 'POST',
 		body: formData
 	});
+
+	if (!res.ok) {
+		throw new Error(`Upload failed: ${res.statusText}`);
+	}
 };
 
-const checkAndUpload = async ({ file, hash }: { file: File; hash: string }): Promise<void> => {
+const checkAndUpload = async ({ file, hash }: UploadItem): Promise<UPLOAD_STATUS> => {
 	const exists = await fileExists(hash);
 	if (exists) {
-		// TODO: notify user of duplicate
-		return;
+		return UPLOAD_STATUS.DUPLICATE;
 	}
 	await uploadFile(file, hash);
+	return UPLOAD_STATUS.UPLOADED;
 };
 
-export const handleFiles = async (files: FileList | File[]) => {
+export const uploadFiles = async (files: FileList | File[], ctx: UploadContext): Promise<void> => {
 	const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
 
+	ctx.start(imageFiles.length);
+
 	const processor = new BatchProcessor(checkAndUpload, 3);
+
+	processor.subscribe((result) => {
+		if (result.ok === true) {
+			if (result.value === UPLOAD_STATUS.UPLOADED) {
+				ctx.complete();
+			} else if (result.value === UPLOAD_STATUS.DUPLICATE) {
+				ctx.reduce();
+				toast.warning(`File ${result.item.file.name} already exists`);
+			}
+		} else {
+			ctx.fail();
+			toast.error(`Failed to upload ${result.item.file.name}`, {
+				action: {
+					label: 'Retry',
+					onClick: () => {
+						ctx.retry();
+						processor.add(result.item);
+					}
+				}
+			});
+		}
+	});
 
 	for (const file of imageFiles) {
 		const hash = await hashFile(file);

@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import * as v from 'valibot';
 import type { RequestHandler } from './$types';
-import { FileUpload } from '$lib/logic/upload';
+import { FileUpload } from '$lib/logic/upload.svelte.js';
 import { saveFile } from '$lib/server/files';
 import { storage } from '$lib/server/storage';
 import { fileRepository } from '$lib/server/db/repositories';
