@@ -64,16 +64,12 @@ const checkAndUpload = async ({ file, hash }: UploadItem): Promise<UPLOAD_STATUS
 export const uploadFiles = async (files: FileList | File[], ctx: UploadContext): Promise<void> => {
 	const imageFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
 
-	ctx.start(imageFiles.length);
-
 	const processor = new BatchProcessor(checkAndUpload, 3);
 
 	processor.subscribe((result) => {
 		if (result.ok === true) {
-			if (result.value === UPLOAD_STATUS.UPLOADED) {
-				ctx.complete();
-			} else if (result.value === UPLOAD_STATUS.DUPLICATE) {
-				ctx.reduce();
+			ctx.complete();
+			if (result.value === UPLOAD_STATUS.DUPLICATE) {
 				toast.warning(`File ${result.item.file.name} already exists`);
 			}
 		} else {
@@ -85,10 +81,15 @@ export const uploadFiles = async (files: FileList | File[], ctx: UploadContext):
 						ctx.retry();
 						processor.add(result.item);
 					}
+				},
+				onDismiss: () => {
+					ctx.dismissError();
 				}
 			});
 		}
 	});
+
+	ctx.start(imageFiles.length);
 
 	for (const file of imageFiles) {
 		const hash = await hashFile(file);

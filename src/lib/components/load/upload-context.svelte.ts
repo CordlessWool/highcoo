@@ -1,4 +1,4 @@
-import { getContext, setContext } from 'svelte';
+import { getContext, setContext, tick } from 'svelte';
 
 const UPLOAD_CONTEXT_KEY = Symbol('upload-progress');
 
@@ -8,16 +8,26 @@ export type UploadContext = {
 	errors: number;
 	start: (count: number) => void;
 	complete: () => void;
-	reduce: () => void;
 	fail: () => void;
 	retry: () => void;
-	reset: () => void;
+	dismissError: () => void;
 };
 
 export const initUploadContext = (): UploadContext => {
 	let total = $state(0);
 	let completed = $state(0);
 	let errors = $state(0);
+
+	const tryReset = async () => {
+		if (completed >= total && errors === 0) {
+			await tick();
+			if (completed >= total && errors === 0) {
+				total = 0;
+				completed = 0;
+				errors = 0;
+			}
+		}
+	};
 
 	const ctx: UploadContext = {
 		get total() {
@@ -30,28 +40,23 @@ export const initUploadContext = (): UploadContext => {
 			return errors;
 		},
 		start: (count: number) => {
-			total = count;
-			completed = 0;
-			errors = 0;
+			total += count;
 		},
 		complete: () => {
 			completed++;
+			tryReset();
 		},
 		fail: () => {
 			completed++;
 			errors++;
 		},
-		reduce: () => {
-			total = total - 1;
-		},
 		retry: () => {
 			completed--;
 			errors--;
 		},
-		reset: () => {
-			total = 0;
-			completed = 0;
-			errors = 0;
+		dismissError: () => {
+			errors--;
+			tryReset();
 		}
 	};
 
