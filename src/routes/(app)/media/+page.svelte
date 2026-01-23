@@ -60,10 +60,10 @@
 		{:else}
 			<PhotoGrid bind:photos>
 				{#snippet item(photoState)}
-					<ImageModal src="/api/files/{photoState.photo.slug}" alt={photoState.photo.name}>
+					<ImageModal src="/api/media/{photoState.photo.slug}" alt={photoState.photo.name}>
 						<div class="flex aspect-square items-center justify-center">
 							<img
-								src="/api/files/{photoState.photo.slug}"
+								src="/api/media/{photoState.photo.slug}"
 								alt={photoState.photo.name}
 								class="max-h-full max-w-full rounded-lg"
 								class:ring-2={photoState.selected}

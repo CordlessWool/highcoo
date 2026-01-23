@@ -22,7 +22,6 @@ export const createFileRepository = (db: typeof database): FileRepository => ({
 				createdAt: data.createdAt ?? new Date()
 			});
 		} catch (error: unknown) {
-			console.log('Insert error:', error);
 			if (!isUniqueConstraint(error)) throw error;
 
 			// Check if it's a hash collision (same file re-uploaded)
