@@ -32,7 +32,7 @@ const hashFile = async (file: File): Promise<string> => {
 };
 
 const fileExists = async (hash: string): Promise<boolean> => {
-	const res = await fetch(`/api/files/${hash}/exists`);
+	const res = await fetch(`/media/${hash}/exists`);
 	const data = await res.json();
 	return data.exists;
 };
@@ -42,7 +42,7 @@ const uploadFile = async (file: File, hash: string): Promise<void> => {
 	formData.append('file', file);
 	formData.append('hash', hash);
 
-	const res = await fetch('/api/files/upload', {
+	const res = await fetch('/media/upload', {
 		method: 'POST',
 		body: formData
 	});

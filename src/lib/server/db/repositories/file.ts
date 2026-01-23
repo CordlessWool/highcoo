@@ -1,7 +1,18 @@
 import { eq, lt, desc, isNull, isNotNull, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import type { FileRepository, NewFile, Pagination } from './types';
 import type { db as database } from '../index';
 import { file } from '../schema';
+
+const isUniqueConstraint = (error: unknown): boolean => {
+	if (!(error instanceof Error)) return false;
+	const cause = 'cause' in error ? error.cause : null;
+	return (
+		cause instanceof Error &&
+		'extendedCode' in cause &&
+		cause.extendedCode === 'SQLITE_CONSTRAINT_UNIQUE'
+	);
+};
 
 export const createFileRepository = (db: typeof database): FileRepository => ({
 	async insert(data: NewFile): Promise<void> {
@@ -10,9 +21,28 @@ export const createFileRepository = (db: typeof database): FileRepository => ({
 				...data,
 				createdAt: data.createdAt ?? new Date()
 			});
-		} catch (error) {
+		} catch (error: unknown) {
 			console.log('Insert error:', error);
-			// TODO: check error type, if exists and deleted -> restore
+			if (!isUniqueConstraint(error)) throw error;
+
+			// Check if it's a hash collision (same file re-uploaded)
+			const existingByHash = await db.query.file.findFirst({
+				where: eq(file.hash, data.hash)
+			});
+
+			if (existingByHash) {
+				if (existingByHash.deletedAt) {
+					await db.update(file).set({ deletedAt: null }).where(eq(file.hash, data.hash));
+				}
+				return;
+			}
+
+			// Slug collision - retry with nanoid suffix
+			await db.insert(file).values({
+				...data,
+				slug: `${data.slug}-${nanoid(6)}`,
+				createdAt: data.createdAt ?? new Date()
+			});
 		}
 	},
 

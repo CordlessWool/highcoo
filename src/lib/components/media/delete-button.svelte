@@ -2,7 +2,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
-	import { softDeletePhotos, restorePhotos } from '$lib/api/media';
+	import { softDeleteMedia, restoreMedia } from '$lib/api/media';
 	import type { DeletedItem } from './types';
 
 	type Props = {
@@ -19,7 +19,7 @@
 		const hashes = deletedItems.map((s) => s.item.photo.hash);
 		const count = hashes.length;
 
-		const success = await softDeletePhotos(hashes);
+		const success = await softDeleteMedia(hashes);
 
 		if (!success) {
 			toast.error('Failed to delete photos');
@@ -32,7 +32,7 @@
 			action: {
 				label: 'Undo',
 				onClick: async () => {
-					const restored = await restorePhotos(hashes);
+					const restored = await restoreMedia(hashes);
 					if (restored) {
 						onrestore?.(deletedItems);
 					}

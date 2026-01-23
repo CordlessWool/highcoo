@@ -25,9 +25,9 @@
 					</Sidebar.MenuButton>
 					<Sidebar.MenuButton>
 						{#snippet child({ props })}
-							<a href="/photos" {...props}>
+							<a href="/media" {...props}>
 								<Images />
-								<span>Photos</span>
+								<span>Media</span>
 							</a>
 						{/snippet}
 					</Sidebar.MenuButton>
