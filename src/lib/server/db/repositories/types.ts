@@ -18,4 +18,6 @@ export interface FileRepository {
 	findBySlug(slug: string): Promise<File | null>;
 	exists(hash: string): Promise<boolean>;
 	findAll(pagination: Pagination): Promise<PaginatedResult<File>>;
+	softDelete(hash: string): Promise<void>;
+	restore(hash: string): Promise<void>;
 }
