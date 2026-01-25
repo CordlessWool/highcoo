@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Sheet from '$lib/components/ui/sheet';
-	import { TagInput } from '$lib/components/form';
+	import { Input as TagInput } from '$lib/components/tag';
 	import type { MediaState } from './types';
 	import type { Tag } from '$lib/logic/tag';
 	import * as tagApi from '$lib/api/tag';
