@@ -1,13 +1,13 @@
 import type { File } from '$lib/server/db/schema';
 
-export type Photo = File;
+export type Media = File;
 
-export type PhotoState = {
-	photo: Photo;
+export type MediaState = {
+	media: Media;
 	selected: boolean;
 };
 
 export type DeletedItem = {
-	item: PhotoState;
+	item: MediaState;
 	index: number;
 };

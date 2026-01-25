@@ -1,34 +1,28 @@
 <script lang="ts">
 	import * as Layout from '$lib/components/layout';
 	import * as Load from '$lib/components/load';
+	import * as Media from '$lib/components/media';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import {
-		UploadButton,
-		ImageModal,
-		PhotoGrid,
-		DeleteButton,
-		photoToState
-	} from '$lib/components/media';
-	import type { PhotoState, DeletedItem } from '$lib/components/media/types';
+	import type { MediaState, DeletedItem } from '$lib/components/media';
 	import type { PageProps } from './$types';
 	import Empty from './empty.svelte';
 
 	const { data }: PageProps = $props();
 
-	let photos = $state<PhotoState[]>(data.photos.map(photoToState));
+	let media = $state<MediaState[]>(data.photos.map(Media.mediaToState));
 
 	const selected = $derived(
-		photos.map((item, index) => ({ item, index })).filter((entry) => entry.item.selected)
+		media.map((item, index) => ({ item, index })).filter((entry) => entry.item.selected)
 	);
 
-	const handleDelete = (items: DeletedItem[]) => {
-		const hashes = new Set(items.map((i) => i.item.photo.hash));
-		photos = photos.filter((p) => !hashes.has(p.photo.hash));
+	const handleDelete = (deleted: DeletedItem[]) => {
+		const hashes = new Set(deleted.map((i) => i.item.media.hash));
+		media = media.filter((m) => !hashes.has(m.media.hash));
 	};
 
-	const handleRestore = (items: DeletedItem[]) => {
-		items.forEach(({ item, index }) => {
-			photos.splice(index, 0, { ...item, selected: false });
+	const handleRestore = (restored: DeletedItem[]) => {
+		restored.forEach(({ item, index }) => {
+			media.splice(index, 0, { ...item, selected: false });
 		});
 	};
 </script>
@@ -41,39 +35,39 @@
 			</ButtonGroup.Root>
 
 			<ButtonGroup.Root>
-				<UploadButton />
+				<Media.UploadButton />
 			</ButtonGroup.Root>
 
 			{#if selected.length > 0}
 				<ButtonGroup.Root>
-					<DeleteButton {selected} ondelete={handleDelete} onrestore={handleRestore} />
+					<Media.DeleteButton {selected} ondelete={handleDelete} onrestore={handleRestore} />
 				</ButtonGroup.Root>
 			{/if}
 		</ButtonGroup.Root>
 
 		<Load.Progress />
 
-		{#if photos.length === 0}
+		{#if media.length === 0}
 			<div class="grid min-h-0 flex-1 place-items-center">
 				<Empty />
 			</div>
 		{:else}
-			<PhotoGrid bind:photos>
-				{#snippet item(photoState)}
-					<ImageModal src="/api/media/{photoState.photo.slug}" alt={photoState.photo.name}>
+			<Media.Grid bind:media>
+				{#snippet children(state)}
+					<Media.Modal src="/api/media/{state.media.slug}" alt={state.media.name}>
 						<div class="flex aspect-square items-center justify-center">
 							<img
-								src="/api/media/{photoState.photo.slug}"
-								alt={photoState.photo.name}
+								src="/api/media/{state.media.slug}"
+								alt={state.media.name}
 								class="max-h-full max-w-full rounded-lg"
-								class:ring-2={photoState.selected}
-								class:ring-primary={photoState.selected}
-								class:ring-offset-2={photoState.selected}
+								class:ring-2={state.selected}
+								class:ring-primary={state.selected}
+								class:ring-offset-2={state.selected}
 							/>
 						</div>
-					</ImageModal>
+					</Media.Modal>
 				{/snippet}
-			</PhotoGrid>
+			</Media.Grid>
 		{/if}
 	</main>
 </Load.Provider>

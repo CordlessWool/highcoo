@@ -1,6 +1,6 @@
-import type { Photo, PhotoState } from './types';
+import type { Media, MediaState } from './types';
 
-export const photoToState = (photo: Photo): PhotoState => ({
-	photo,
+export const mediaToState = (media: Media): MediaState => ({
+	media,
 	selected: false
 });

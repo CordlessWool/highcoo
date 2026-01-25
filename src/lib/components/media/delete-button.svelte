@@ -16,19 +16,19 @@
 	const handleDelete = async () => {
 		// Capture items before delete - selected will be empty after ondelete
 		const deletedItems = [...selected];
-		const hashes = deletedItems.map((s) => s.item.photo.hash);
+		const hashes = deletedItems.map((s) => s.item.media.hash);
 		const count = hashes.length;
 
 		const success = await softDeleteMedia(hashes);
 
 		if (!success) {
-			toast.error('Failed to delete photos');
+			toast.error('Failed to delete media');
 			return;
 		}
 
 		ondelete?.(deletedItems);
 
-		toast.success(`${count} photo${count > 1 ? 's' : ''} deleted`, {
+		toast.success(`${count} item${count > 1 ? 's' : ''} deleted`, {
 			action: {
 				label: 'Undo',
 				onClick: async () => {
