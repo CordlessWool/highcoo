@@ -21,7 +21,7 @@
 			const input = event.target as HTMLInputElement;
 			const inputValue = input.value.trim();
 			if (inputValue) {
-				if (value && value.some((p) => p === inputValue)) {
+				if (value && value.some((p: string) => p === inputValue)) {
 					toast.error('Value already exists');
 					return;
 				}
