@@ -10,7 +10,7 @@
 
 	let mergedProps = $derived({
 		...props,
-		class: cn('flex flex-row flex-wrap items-center gap-1.5', props.class)
+		class: cn('flex flex-row flex-wrap w-full items-start justify-start gap-1.5', props.class)
 	});
 </script>
 

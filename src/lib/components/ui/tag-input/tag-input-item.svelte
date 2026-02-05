@@ -17,8 +17,10 @@
 </script>
 
 <ButtonGroup.Root>
-	<ButtonGroup.Text class="bg-primary text-secondary">{label}</ButtonGroup.Text>
-	<Button size="icon-sm" onclick={handleRemove}>
-		<X class="h-2 w-2" />
+	<ButtonGroup.Text class="border-primary bg-primary px-2 py-0.5 text-xs text-secondary"
+		>{label}</ButtonGroup.Text
+	>
+	<Button size="icon-xs" class="text-xs" onclick={handleRemove}>
+		<X />
 	</Button>
 </ButtonGroup.Root>
