@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 export const user = sqliteTable('user', { id: text('id').primaryKey(), age: integer('age') });
 
@@ -14,6 +14,32 @@ export const file = sqliteTable('file', {
 });
 
 export type File = typeof file.$inferSelect;
+
+export const tag = sqliteTable('tag', {
+	id: text('id').primaryKey(),
+	name: text('name').notNull(),
+	slug: text('slug').unique(),
+	color: text('color'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
+
+export type Tag = typeof tag.$inferSelect;
+export type NewTag = Omit<typeof tag.$inferInsert, 'createdAt'>;
+
+export const mediaTag = sqliteTable(
+	'media_tag',
+	{
+		mediaHash: text('media_hash')
+			.notNull()
+			.references(() => file.hash),
+		tagId: text('tag_id')
+			.notNull()
+			.references(() => tag.id)
+	},
+	(table) => [primaryKey({ columns: [table.mediaHash, table.tagId] })]
+);
+
+export type MediaTag = typeof mediaTag.$inferSelect;
 
 export const session = sqliteTable('session', {
 	id: text('id').primaryKey(),

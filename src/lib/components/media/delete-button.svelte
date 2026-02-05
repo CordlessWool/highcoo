@@ -3,20 +3,18 @@
 	import { Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { softDeleteMedia, restoreMedia } from '$lib/api/media';
-	import type { DeletedItem } from './types';
+	import type { MediaState } from './types';
 
 	type Props = {
-		selected: DeletedItem[];
-		ondelete?: (items: DeletedItem[]) => void;
-		onrestore?: (items: DeletedItem[]) => void;
+		selected: MediaState[];
+		ondelete?: (hashes: string[]) => void;
+		onrestore?: (hashes: string[]) => void;
 	};
 
 	let { selected, ondelete, onrestore }: Props = $props();
 
 	const handleDelete = async () => {
-		// Capture items before delete - selected will be empty after ondelete
-		const deletedItems = [...selected];
-		const hashes = deletedItems.map((s) => s.item.media.hash);
+		const hashes = selected.map((s) => s.media.hash);
 		const count = hashes.length;
 
 		const success = await softDeleteMedia(hashes);
@@ -26,7 +24,7 @@
 			return;
 		}
 
-		ondelete?.(deletedItems);
+		ondelete?.(hashes);
 
 		toast.success(`${count} item${count > 1 ? 's' : ''} deleted`, {
 			action: {
@@ -34,7 +32,7 @@
 				onClick: async () => {
 					const restored = await restoreMedia(hashes);
 					if (restored) {
-						onrestore?.(deletedItems);
+						onrestore?.(hashes);
 					}
 				}
 			}

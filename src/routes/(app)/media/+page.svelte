@@ -3,7 +3,7 @@
 	import * as Load from '$lib/components/load';
 	import * as Media from '$lib/components/media';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import type { MediaState, DeletedItem } from '$lib/components/media';
+	import type { MediaState } from '$lib/components/media';
 	import type { PageProps } from './$types';
 	import Empty from './empty.svelte';
 
@@ -11,18 +11,26 @@
 
 	let media = $state<MediaState[]>(data.photos.map(Media.mediaToState));
 
-	const selected = $derived(
-		media.map((item, index) => ({ item, index })).filter((entry) => entry.item.selected)
-	);
+	const visible = $derived(media.filter((m) => !m.deleted));
 
-	const handleDelete = (deleted: DeletedItem[]) => {
-		const hashes = new Set(deleted.map((i) => i.item.media.hash));
-		media = media.filter((m) => !hashes.has(m.media.hash));
+	const selected = $derived(media.filter((m) => m.selected && !m.deleted));
+
+	const handleDelete = (hashes: string[]) => {
+		const hashSet = new Set(hashes);
+		media.forEach((m) => {
+			if (hashSet.has(m.media.hash)) {
+				m.deleted = true;
+				m.selected = false;
+			}
+		});
 	};
 
-	const handleRestore = (restored: DeletedItem[]) => {
-		restored.forEach(({ item, index }) => {
-			media.splice(index, 0, { ...item, selected: false });
+	const handleRestore = (hashes: string[]) => {
+		const hashSet = new Set(hashes);
+		media.forEach((m) => {
+			if (hashSet.has(m.media.hash)) {
+				m.deleted = false;
+			}
 		});
 	};
 </script>
@@ -40,6 +48,7 @@
 
 			{#if selected.length > 0}
 				<ButtonGroup.Root>
+					<Media.InfoButton {selected} />
 					<Media.DeleteButton {selected} ondelete={handleDelete} onrestore={handleRestore} />
 				</ButtonGroup.Root>
 			{/if}
@@ -47,12 +56,12 @@
 
 		<Load.Progress />
 
-		{#if media.length === 0}
+		{#if visible.length === 0}
 			<div class="grid min-h-0 flex-1 place-items-center">
 				<Empty />
 			</div>
 		{:else}
-			<Media.Grid bind:media>
+			<Media.Grid media={visible}>
 				{#snippet children(state)}
 					<Media.Modal src="/api/media/{state.media.slug}" alt={state.media.name}>
 						<div class="flex aspect-square items-center justify-center">
