@@ -1,9 +1,7 @@
 <script lang="ts">
 	import * as Sheet from '$lib/components/ui/sheet';
-	import { Input as TagInput } from '$lib/components/tag';
+	import MediaTagInput from './media-tag-input.svelte';
 	import type { MediaState } from './types';
-	import type { Tag } from '$lib/logic/tag';
-	import * as tagApi from '$lib/api/tag';
 
 	type Props = {
 		open: boolean;
@@ -12,80 +10,6 @@
 	};
 
 	let { open = $bindable(), selected, onOpenChange }: Props = $props();
-
-	let allTags = $state<Tag[]>([]);
-	let mediaTags = $state<Map<string, Tag[]>>(new Map());
-	let loading = $state(false);
-
-	const loadTags = async () => {
-		loading = true;
-		allTags = await tagApi.getTags();
-		// TODO: Load tags for selected media items
-		loading = false;
-	};
-
-	$effect(() => {
-		if (open && selected.length > 0) {
-			loadTags();
-		}
-	});
-
-	let tagNames = $state<string[]>([]);
-	let previousTagNames = $state<string[]>([]);
-
-	// Sync tagNames when selection changes
-	$effect(() => {
-		if (selected.length === 0) {
-			tagNames = [];
-			previousTagNames = [];
-			return;
-		}
-		// TODO: Calculate common tags across selected items from mediaTags
-		tagNames = [];
-		previousTagNames = [];
-	});
-
-	// React to tag changes and call API
-	$effect(() => {
-		const current = [...tagNames];
-		const previous = previousTagNames;
-
-		if (current.length === previous.length && current.every((t, i) => t === previous[i])) {
-			return;
-		}
-
-		const added = current.filter((t) => !previous.includes(t));
-		const removed = previous.filter((t) => !current.includes(t));
-
-		if (added.length === 0 && removed.length === 0) {
-			previousTagNames = current;
-			return;
-		}
-
-		const hashes = selected.map((s) => s.media.hash);
-
-		(async () => {
-			for (const name of added) {
-				let tag = allTags.find((t) => t.name === name);
-				if (!tag) {
-					tag = await tagApi.createTag({ name });
-					if (tag) allTags = [...allTags, tag];
-				}
-				if (tag) {
-					await tagApi.addTagToMedia(tag.id, hashes);
-				}
-			}
-
-			for (const name of removed) {
-				const tag = allTags.find((t) => t.name === name);
-				if (tag) {
-					await tagApi.removeTagFromMedia(tag.id, hashes);
-				}
-			}
-
-			previousTagNames = current;
-		})();
-	});
 </script>
 
 <Sheet.Root bind:open {onOpenChange}>
@@ -125,7 +49,7 @@
 
 			<div class="space-y-2">
 				<h3 class="text-sm font-medium">Tags</h3>
-				<TagInput bind:value={tagNames} placeholder="Add tag..." />
+				<MediaTagInput hashes={selected.map((s) => s.media.hash)} />
 			</div>
 		</div>
 	</Sheet.Content>

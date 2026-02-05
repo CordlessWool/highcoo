@@ -1,1 +1,1 @@
-export { default as Input } from './tag-input.svelte';
+export { default as Input, type Item as TagInputItem } from './tag-input.svelte';

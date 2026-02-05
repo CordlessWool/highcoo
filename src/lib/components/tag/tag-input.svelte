@@ -1,5 +1,11 @@
-<script lang="ts">
+<script lang="ts" module>
 	import * as TagInput from '$lib/components/ui/tag-input/index.js';
+
+	export type Item = ComponentProps<typeof TagInput.Item>;
+</script>
+
+<script lang="ts">
+	import { getTags, createTag } from './tags.remote';
 	import { toast } from 'svelte-sonner';
 	import type { ComponentProps } from 'svelte';
 
@@ -7,22 +13,25 @@
 
 	type Props = {
 		tags?: Item[];
-		options?: Item[];
 		onselect?: (item: Item) => Promise<void>;
-		oncreate?: (item: Item) => Promise<void>;
 		onremove?: (item: Item) => Promise<void>;
 	};
 
-	let { tags = [], options = [], onselect, oncreate, onremove }: Props = $props();
+	let { tags = $bindable([]), onselect, onremove }: Props = $props();
+	console.log(tags);
+	const allTags = getTags();
 
 	// Filter out already-added tags
 	const availableOptions = $derived(
-		options.filter((o) => !tags.some((t) => t.label === o.label)).map((o) => o.label)
+		(allTags.current ?? [])
+			.filter((t) => !tags.some((tag) => tag.label === t.name))
+			.map((t) => t.name)
 	);
 
 	const handleSelect = async (label: string) => {
-		const item = options.find((o) => o.label === label);
-		if (item) {
+		const tag = (allTags.current ?? []).find((t) => t.name === label);
+		if (tag) {
+			const item = { id: tag.id, label: tag.name };
 			await onselect?.(item);
 			tags = [...tags, item];
 		}
@@ -33,8 +42,8 @@
 			toast.error('Tag already exists');
 			return;
 		}
-		const item = { id: '', label };
-		await oncreate?.(item);
+		const tag = await createTag({ name: label });
+		const item = { id: tag.id, label: tag.name };
 		tags = [...tags, item];
 	};
 
