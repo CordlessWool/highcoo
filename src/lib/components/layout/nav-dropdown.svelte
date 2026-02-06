@@ -3,11 +3,12 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ChevronDown, LayoutDashboard, Images } from '@lucide/svelte';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 
 	const routes = [
-		{ href: '/', label: 'Dashboard', icon: LayoutDashboard },
-		{ href: '/media', label: 'Media', icon: Images }
-	];
+		{ href: resolve('/'), label: 'Dashboard', icon: LayoutDashboard },
+		{ href: resolve('/media'), label: 'Media', icon: Images }
+	] as const;
 
 	const current = $derived(routes.find((r) => r.href === page.url.pathname) ?? routes[0]);
 </script>
@@ -15,7 +16,7 @@
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger>
 		{#snippet child({ props })}
-			<Button variant="secondary" {...props}>
+			<Button variant="ghost" {...props}>
 				<current.icon class="h-4 w-4" />
 				<span>{current.label}</span>
 				<ChevronDown class="h-4 w-4" />
@@ -23,7 +24,7 @@
 		{/snippet}
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content align="start">
-		{#each routes.filter((r) => r.href !== current.href) as route}
+		{#each routes.filter((r) => r.href !== current.href) as route (route.href)}
 			<DropdownMenu.Item href={route.href}>
 				<route.icon class="mr-2 h-4 w-4" />
 				{route.label}
