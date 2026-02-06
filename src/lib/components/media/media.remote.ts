@@ -1,29 +1,40 @@
 import * as v from 'valibot';
 import { command, query } from '$app/server';
-import { fileRepository } from '$lib/server/db/repositories';
+import { mediaRepository } from '$lib/server/db/repositories';
 import type { Tag } from '$lib/logic/tag';
 
 const AddTagToMediaInput = v.object({
 	tagId: v.string(),
-	hashes: v.array(v.string())
+	mediaIds: v.array(v.string())
 });
 
 const RemoveTagFromMediaInput = v.object({
 	tagId: v.string(),
-	hashes: v.array(v.string())
+	mediaIds: v.array(v.string())
+});
+
+const PartialMedia = v.object({
+	id: v.string(),
+	name: v.optional(v.string()),
+	slug: v.optional(v.string()),
+	description: v.optional(v.nullable(v.string()))
 });
 
 export const addTagToMedia = command(AddTagToMediaInput, async (input) => {
-	await fileRepository.addTag(input.hashes, input.tagId);
-	await Promise.all(input.hashes.map((hash) => getTagsForMedia(hash).refresh()));
+	await mediaRepository.addTag(input.mediaIds, input.tagId);
+	await Promise.all(input.mediaIds.map((id) => getTagsForMedia(id).refresh()));
 });
 
 export const removeTagFromMedia = command(RemoveTagFromMediaInput, async (input) => {
-	await fileRepository.removeTag(input.hashes, input.tagId);
-	await Promise.all(input.hashes.map((hash) => getTagsForMedia(hash).refresh()));
+	await mediaRepository.removeTag(input.mediaIds, input.tagId);
+	await Promise.all(input.mediaIds.map((id) => getTagsForMedia(id).refresh()));
 });
 
-export const getTagsForMedia = query.batch(v.string(), async (hashes: string[]) => {
-	const tagMap = await fileRepository.getTagsForMany(hashes);
-	return (hash: string): Tag[] => tagMap.get(hash) ?? [];
+export const patchMedia = command(PartialMedia, async ({ id, ...data }) => {
+	await mediaRepository.patch(id, data);
+});
+
+export const getTagsForMedia = query.batch(v.string(), async (ids: string[]) => {
+	const tagMap = await mediaRepository.getTagsForMany(ids);
+	return (id: string): Tag[] => tagMap.get(id) ?? [];
 });

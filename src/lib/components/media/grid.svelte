@@ -37,7 +37,7 @@
 </script>
 
 <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-	{#each media as state, index (state.media.hash)}
+	{#each media as state, index (state.media.id)}
 		<button type="button" class="cursor-pointer text-left" onclick={(e) => handleClick(index, e)}>
 			{@render children(state)}
 		</button>

@@ -1,6 +1,6 @@
-import type { File } from '$lib/server/db/schema';
+import type * as table from '$lib/server/db/schema';
 
-export type Media = File;
+export type Media = table.Media;
 
 export type MediaState = {
 	media: Media;

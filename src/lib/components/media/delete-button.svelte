@@ -7,32 +7,32 @@
 
 	type Props = {
 		selected: MediaState[];
-		ondelete?: (hashes: string[]) => void;
-		onrestore?: (hashes: string[]) => void;
+		ondelete?: (ids: string[]) => void;
+		onrestore?: (ids: string[]) => void;
 	};
 
 	let { selected, ondelete, onrestore }: Props = $props();
 
 	const handleDelete = async () => {
-		const hashes = selected.map((s) => s.media.hash);
-		const count = hashes.length;
+		const ids = selected.map((s) => s.media.id);
+		const count = ids.length;
 
-		const success = await softDeleteMedia(hashes);
+		const success = await softDeleteMedia(ids);
 
 		if (!success) {
 			toast.error('Failed to delete media');
 			return;
 		}
 
-		ondelete?.(hashes);
+		ondelete?.(ids);
 
 		toast.success(`${count} item${count > 1 ? 's' : ''} deleted`, {
 			action: {
 				label: 'Undo',
 				onClick: async () => {
-					const restored = await restoreMedia(hashes);
+					const restored = await restoreMedia(ids);
 					if (restored) {
-						onrestore?.(hashes);
+						onrestore?.(ids);
 					}
 				}
 			}

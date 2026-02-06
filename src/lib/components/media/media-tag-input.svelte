@@ -4,36 +4,35 @@
 	import { toast } from 'svelte-sonner';
 
 	type Props = {
-		hashes: string[];
+		mediaIds: string[];
 	};
 
-	let { hashes }: Props = $props();
+	let { mediaIds }: Props = $props();
 
 	// Compute common tags (tags that ALL selected media have)
 	const tags = $derived.by(async (): Promise<TagInputItem[]> => {
-		const [firstHash, ...restHashes] = hashes;
-		const tagsOfFirst = await getTagsForMedia(firstHash);
-		console.log(tagsOfFirst);
+		const [firstId, ...restIds] = mediaIds;
+		const tagsOfFirst = await getTagsForMedia(firstId);
 
-		if (restHashes.length === 0) return tagsOfFirst.map((t) => ({ id: t.id, label: t.name }));
-		const commonTags = await restHashes.reduce(async (tags, hash) => {
-			const tagsOfCurrent = await getTagsForMedia(hash);
+		if (restIds.length === 0) return tagsOfFirst.map((t) => ({ id: t.id, label: t.name }));
+		const commonTags = await restIds.reduce(async (tags, id) => {
+			const tagsOfCurrent = await getTagsForMedia(id);
 			return (await tags).filter((tag) => tagsOfCurrent.some((t) => t.id === tag.id));
 		}, Promise.resolve(tagsOfFirst));
 		return commonTags.map((t) => ({ id: t.id, label: t.name }));
 	});
 
-	const handleSelect = async (item: Item) => {
+	const handleSelect = async (item: TagInputItem) => {
 		try {
-			await addTagToMedia({ tagId: item.id, hashes });
+			await addTagToMedia({ tagId: item.id, mediaIds });
 		} catch {
 			toast.error('Failed to add tag');
 		}
 	};
 
-	const handleRemove = async (item: Item) => {
+	const handleRemove = async (item: TagInputItem) => {
 		try {
-			await removeTagFromMedia({ tagId: item.id, hashes });
+			await removeTagFromMedia({ tagId: item.id, mediaIds });
 		} catch {
 			toast.error('Failed to remove tag');
 		}

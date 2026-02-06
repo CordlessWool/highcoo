@@ -13,7 +13,7 @@
 	{#if selected.length > 0}
 		<div class="space-y-2">
 			<h3 class="text-sm font-medium">Tags</h3>
-			<MediaTagInput hashes={selected.map((s) => s.media.hash)} />
+			<MediaTagInput mediaIds={selected.map((s) => s.media.id)} />
 		</div>
 	{/if}
 </div>

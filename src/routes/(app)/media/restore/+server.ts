@@ -1,17 +1,17 @@
 import { json } from '@sveltejs/kit';
 import * as v from 'valibot';
 import type { RequestHandler } from './$types';
-import { fileRepository } from '$lib/server/db/repositories';
+import { mediaRepository } from '$lib/server/db/repositories';
 
 const RestoreRequest = v.object({
-	hashes: v.array(v.string())
+	ids: v.array(v.string())
 });
 
 export const POST: RequestHandler = async ({ request }) => {
 	const body = await request.json();
-	const { hashes } = v.parse(RestoreRequest, body);
+	const { ids } = v.parse(RestoreRequest, body);
 
-	await Promise.all(hashes.map((hash) => fileRepository.restore(hash)));
+	await Promise.all(ids.map((id) => mediaRepository.restore(id)));
 
-	return json({ success: true, count: hashes.length });
+	return json({ success: true, count: ids.length });
 };

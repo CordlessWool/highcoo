@@ -1,17 +1,17 @@
 import { json } from '@sveltejs/kit';
 import * as v from 'valibot';
 import type { RequestHandler } from './$types';
-import { fileRepository } from '$lib/server/db/repositories';
+import { mediaRepository } from '$lib/server/db/repositories';
 
-const HashesRequest = v.object({
-	hashes: v.array(v.string())
+const IdsRequest = v.object({
+	ids: v.array(v.string())
 });
 
 export const GET: RequestHandler = async ({ url }) => {
 	const limit = Number(url.searchParams.get('limit') ?? 20);
 	const cursor = url.searchParams.get('cursor') ?? undefined;
 
-	const result = await fileRepository.findAll({ limit, cursor });
+	const result = await mediaRepository.findAll({ limit, cursor });
 
 	return json({
 		photos: result.items,
@@ -21,9 +21,9 @@ export const GET: RequestHandler = async ({ url }) => {
 
 export const DELETE: RequestHandler = async ({ request }) => {
 	const body = await request.json();
-	const { hashes } = v.parse(HashesRequest, body);
+	const { ids } = v.parse(IdsRequest, body);
 
-	await Promise.all(hashes.map((hash) => fileRepository.softDelete(hash)));
+	await Promise.all(ids.map((id) => mediaRepository.softDelete(id)));
 
-	return json({ success: true, count: hashes.length });
+	return json({ success: true, count: ids.length });
 };

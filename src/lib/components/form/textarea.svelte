@@ -2,9 +2,9 @@
 	import * as InputGroup from '$lib/components/ui/input-group';
 	import Indicator from './indicator.svelte';
 	import { debounce, SaveStatus } from './helper';
-	import type { Component } from 'svelte';
+	import type { ComponentProps } from 'svelte';
 
-	type Props = Omit<ComponentProps<Component<typeof InputGroup.Textarea>>, 'oninput'> & {
+	type Props = Omit<ComponentProps<typeof InputGroup.Textarea>, 'oninput'> & {
 		label: string;
 		onsave: (value: string) => Promise<void>;
 		delay?: number;

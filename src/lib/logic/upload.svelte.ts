@@ -32,9 +32,8 @@ const hashFile = async (file: File): Promise<string> => {
 };
 
 const fileExists = async (hash: string): Promise<boolean> => {
-	const res = await fetch(`/media/${hash}/exists`);
-	const data = await res.json();
-	return data.exists;
+	const res = await fetch(`/file/${hash}`, { method: 'HEAD' });
+	return res.ok;
 };
 
 const uploadFile = async (file: File, hash: string): Promise<void> => {
