@@ -1,20 +1,14 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Info } from '@lucide/svelte';
-	import DetailPanel from './detail-panel.svelte';
-	import type { MediaState } from './types';
 
 	type Props = {
-		selected: MediaState[];
+		open: boolean;
 	};
 
-	let { selected }: Props = $props();
-
-	let open = $state(false);
+	let { open = $bindable() }: Props = $props();
 </script>
 
-<Button variant="secondary" onclick={() => (open = true)}>
+<Button variant="secondary" onclick={() => (open = !open)}>
 	<Info class="h-4 w-4" />
 </Button>
-
-<DetailPanel bind:open {selected} />
