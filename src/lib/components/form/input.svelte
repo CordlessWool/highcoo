@@ -4,7 +4,7 @@
 	import { debounce, SaveStatus } from './helper';
 	import type { ComponentProps } from 'svelte';
 
-	type Props = Omit<ComponentProps<typeof InputGroup.Input>, 'oninput'> & {
+	type Props = ComponentProps<typeof InputGroup.Input> & {
 		label: string;
 		onsave: (value: string) => Promise<void>;
 		delay?: number;
