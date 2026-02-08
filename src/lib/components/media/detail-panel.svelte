@@ -22,7 +22,7 @@
 		<Form.Input
 			label="Name"
 			value={allSame((s) => s.media.name) ? selected[0].media.name : ''}
-			placeholder={!isSingle && !allSame((s) => s.media.name) ? 'Different values' : 'Name'}
+			placeholder={!isSingle && !allSame((s) => s.media.name) ? 'Different names' : 'Name'}
 			onsave={async (val) => {
 				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name: val })));
 			}}
@@ -39,7 +39,7 @@
 			label="Description"
 			value={allSame((s) => s.media.description) ? (selected[0].media.description ?? '') : ''}
 			placeholder={!isSingle && !allSame((s) => s.media.description)
-				? 'Different values'
+				? 'Different descriptions'
 				: 'Description'}
 			onsave={async (val) => {
 				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, description: val })));
