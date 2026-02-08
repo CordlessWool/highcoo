@@ -12,16 +12,19 @@
 	let { selected }: Props = $props();
 
 	const isSingle = $derived(selected.length === 1);
+
+	const allSame = (getter: (s: MediaState) => string | null) =>
+		selected.every((s) => (getter(s) ?? '') === (getter(selected[0]) ?? ''));
 </script>
 
 <div class="flex flex-col gap-3 px-2">
 	{#if selected.length > 0}
 		<Form.Input
 			label="Name"
-			value={isSingle ? selected[0].media.name : ''}
-			placeholder={isSingle ? 'Name' : 'Multiple items'}
-			onsave={async (name) => {
-				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name })));
+			value={allSame((s) => s.media.name) ? selected[0].media.name : ''}
+			placeholder={!isSingle && !allSame((s) => s.media.name) ? 'Different values' : 'Name'}
+			onsave={async (val) => {
+				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name: val })));
 			}}
 		/>
 
@@ -34,10 +37,12 @@
 
 		<Form.Textarea
 			label="Description"
-			value={isSingle ? (selected[0].media.description ?? '') : ''}
-			placeholder={isSingle ? 'Description' : 'Multiple items'}
-			onsave={async (description) => {
-				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, description })));
+			value={allSame((s) => s.media.description) ? (selected[0].media.description ?? '') : ''}
+			placeholder={!isSingle && !allSame((s) => s.media.description)
+				? 'Different values'
+				: 'Description'}
+			onsave={async (val) => {
+				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, description: val })));
 			}}
 		/>
 

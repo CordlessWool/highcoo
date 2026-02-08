@@ -33,8 +33,7 @@
 	};
 
 	const info = $derived.by(() => {
-		if (!value) return isSingle ? 'Changing the slug will break existing links' : undefined;
-		if (isSingle) return 'Changing the slug will break existing links';
+		if (!value) return 'Changing slugs will break existing links';
 		return `Will generate: ${selected.map((_, i) => `${value}-${i + 1}`).join(', ')}`;
 	});
 
@@ -53,7 +52,7 @@
 	label="Slug"
 	bind:value
 	oninput={handleInput}
-	placeholder={isSingle ? 'Slug' : 'Base slug for all items'}
+	placeholder={isSingle ? 'Slug' : 'Change all slugs'}
 	{info}
 	onsave={handleSave}
 />
