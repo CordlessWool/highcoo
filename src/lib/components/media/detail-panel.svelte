@@ -19,8 +19,15 @@
 			label="Name"
 			value={isSingle ? selected[0].media.name : ''}
 			placeholder={isSingle ? 'Name' : 'Multiple items'}
-			info={isSingle ? undefined : 'Applies to all selected items'}
 			onsave={(name) => Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name })))}
+		/>
+
+		<Form.Textarea
+			label="Description"
+			value={isSingle ? (selected[0].media.description ?? '') : ''}
+			placeholder={isSingle ? 'Description' : 'Multiple items'}
+			onsave={(description) =>
+				Promise.all(selected.map((s) => patchMedia({ id: s.media.id, description })))}
 		/>
 
 		<div class="space-y-2">

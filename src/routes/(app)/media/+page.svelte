@@ -85,13 +85,7 @@
 	</Load.Provider>
 	<Layout.DetailSidebar>
 		{#snippet header()}
-			<h2 class="mt-1 mb-3 text-lg font-semibold">
-				{#if selected.length === 1}
-					{selected[0].media.name}
-				{:else}
-					{selected.length} items selected
-				{/if}
-			</h2>
+			<Media.DetailHeading {selected} />
 		{/snippet}
 
 		<Media.DetailPanel {selected} />
