@@ -1,5 +1,6 @@
 import { extname } from 'path';
 import { nanoid } from 'nanoid';
+import { generateSlug } from '$lib/logic/slug';
 import type { StorageAdapter } from './storage/types';
 import type { FileRepository, MediaRepository } from './db/repositories/types';
 
@@ -12,14 +13,6 @@ type Services = {
 	storage: StorageAdapter;
 	fileRepository: FileRepository;
 	mediaRepository: MediaRepository;
-};
-
-const generateSlug = (name: string): string => {
-	return name
-		.toLowerCase()
-		.replace(/\.[^.]+$/, '')
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-|-$/g, '');
 };
 
 export const saveFile = async (fileData: FileData, services: Services) => {

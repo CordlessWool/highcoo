@@ -1,48 +1,60 @@
 <script lang="ts">
 	import * as InputGroup from '$lib/components/ui/input-group';
 	import Indicator from './indicator.svelte';
-	import { debounce, SaveStatus, getErrorMessage } from './helper';
+	import { SaveStatus, getErrorMessage } from './helper';
 	import type { ComponentProps } from 'svelte';
 
-	type Props = ComponentProps<typeof InputGroup.Textarea> & {
+	type Props = ComponentProps<typeof InputGroup.Input> & {
 		label: string;
 		onsave: (value: string) => Promise<void>;
-		delay?: number;
 		info?: string;
 	};
 
-	let { label, onsave, delay = 500, info, ...props }: Props = $props();
+	let { label, value = $bindable(''), onsave, oninput, info, ...props }: Props = $props();
 
 	let status = $state(SaveStatus.Idle);
 	let errorMessage = $state('');
 
-	const save = debounce(async (val: string) => {
-		status = SaveStatus.Saving;
-		errorMessage = '';
-		try {
-			await onsave(val);
-			status = SaveStatus.Saved;
-		} catch (e) {
-			status = SaveStatus.Error;
-			errorMessage = getErrorMessage(e);
-		}
-	}, delay);
+	let dirty = $state(false);
 
 	const handleInput = (e: Event) => {
-		const { value } = e.target as HTMLTextAreaElement;
+		dirty = true;
+		oninput?.(e);
 		if (status === SaveStatus.Error) {
 			status = SaveStatus.Idle;
 			errorMessage = '';
 		}
-		save(value);
+	};
+
+	const handleSave = async () => {
+		status = SaveStatus.Saving;
+		errorMessage = '';
+		try {
+			await onsave(value);
+			status = SaveStatus.Saved;
+			dirty = false;
+		} catch (e) {
+			status = SaveStatus.Error;
+			errorMessage = getErrorMessage(e);
+		}
 	};
 </script>
 
 <div class="space-y-1">
 	<InputGroup.Root>
-		<InputGroup.Textarea oninput={handleInput} placeholder={label} {...props} />
+		<InputGroup.Input oninput={handleInput} placeholder={label} bind:value {...props} />
 		<InputGroup.Addon align="inline-end">
-			<Indicator {status} />
+			{#if dirty}
+				<InputGroup.Button
+					variant="default"
+					onclick={handleSave}
+					disabled={status === SaveStatus.Saving}
+				>
+					Save
+				</InputGroup.Button>
+			{:else}
+				<Indicator {status} />
+			{/if}
 		</InputGroup.Addon>
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import * as Form from '$lib/components/form';
 	import MediaTagInput from './media-tag-input.svelte';
+	import SlugInput from './slug-input.svelte';
 	import { patchMedia } from './media.remote';
 	import type { MediaState } from './types';
 
@@ -19,15 +20,25 @@
 			label="Name"
 			value={isSingle ? selected[0].media.name : ''}
 			placeholder={isSingle ? 'Name' : 'Multiple items'}
-			onsave={(name) => Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name })))}
+			onsave={async (name) => {
+				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name })));
+			}}
+		/>
+
+		<SlugInput
+			{selected}
+			onsave={async (slugs) => {
+				await Promise.all(slugs.map(({ id, slug }) => patchMedia({ id, slug })));
+			}}
 		/>
 
 		<Form.Textarea
 			label="Description"
 			value={isSingle ? (selected[0].media.description ?? '') : ''}
 			placeholder={isSingle ? 'Description' : 'Multiple items'}
-			onsave={(description) =>
-				Promise.all(selected.map((s) => patchMedia({ id: s.media.id, description })))}
+			onsave={async (description) => {
+				await Promise.all(selected.map((s) => patchMedia({ id: s.media.id, description })));
+			}}
 		/>
 
 		<div class="space-y-2">

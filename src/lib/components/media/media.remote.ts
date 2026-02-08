@@ -1,4 +1,5 @@
 import * as v from 'valibot';
+import { error } from '@sveltejs/kit';
 import { command, query } from '$app/server';
 import { mediaRepository } from '$lib/server/db/repositories';
 import type { Tag } from '$lib/logic/tag';
@@ -31,7 +32,21 @@ export const removeTagFromMedia = command(RemoveTagFromMediaInput, async (input)
 });
 
 export const patchMedia = command(PartialMedia, async ({ id, ...data }) => {
-	await mediaRepository.patch(id, data);
+	try {
+		await mediaRepository.patch(id, data);
+	} catch (err: unknown) {
+		if (err instanceof Error) {
+			const cause = 'cause' in err ? err.cause : null;
+			const isUnique =
+				cause instanceof Error &&
+				'extendedCode' in cause &&
+				cause.extendedCode === 'SQLITE_CONSTRAINT_UNIQUE';
+			if (isUnique) {
+				error(409, 'Slug is already taken');
+			}
+		}
+		throw err;
+	}
 });
 
 export const getTagsForMedia = query.batch(v.string(), async (ids: string[]) => {

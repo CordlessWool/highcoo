@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as InputGroup from '$lib/components/ui/input-group';
 	import Indicator from './indicator.svelte';
-	import { debounce, SaveStatus } from './helper';
+	import { debounce, SaveStatus, getErrorMessage } from './helper';
 	import type { ComponentProps } from 'svelte';
 
 	type Props = ComponentProps<typeof InputGroup.Input> & {
@@ -24,7 +24,7 @@
 			status = SaveStatus.Saved;
 		} catch (e) {
 			status = SaveStatus.Error;
-			errorMessage = e instanceof Error ? e.message : 'Failed to save';
+			errorMessage = getErrorMessage(e);
 		}
 	}, delay);
 
@@ -46,7 +46,7 @@
 		</InputGroup.Addon>
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
-		<p class="text-sm text-destructive">{errorMessage}</p>
+		<p class="text-xs text-destructive">{errorMessage}</p>
 	{:else if info}
 		<p class="text-xs text-muted-foreground">{info}</p>
 	{/if}
