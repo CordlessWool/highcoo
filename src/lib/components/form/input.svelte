@@ -8,9 +8,10 @@
 		label: string;
 		onsave: (value: string) => Promise<void>;
 		delay?: number;
+		info?: string;
 	};
 
-	let { label, onsave, delay = 500, ...props }: Props = $props();
+	let { label, onsave, delay = 500, info, ...props }: Props = $props();
 
 	let status = $state(SaveStatus.Idle);
 	let errorMessage = $state('');
@@ -46,5 +47,7 @@
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
 		<p class="text-sm text-destructive">{errorMessage}</p>
+	{:else if info}
+		<p class="text-xs text-muted-foreground">{info}</p>
 	{/if}
 </div>

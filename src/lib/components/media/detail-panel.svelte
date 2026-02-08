@@ -1,5 +1,7 @@
 <script lang="ts">
+	import * as Form from '$lib/components/form';
 	import MediaTagInput from './media-tag-input.svelte';
+	import { patchMedia } from './media.remote';
 	import type { MediaState } from './types';
 
 	type Props = {
@@ -7,10 +9,20 @@
 	};
 
 	let { selected }: Props = $props();
+
+	const isSingle = $derived(selected.length === 1);
 </script>
 
 <div class="flex flex-col gap-3 px-2">
 	{#if selected.length > 0}
+		<Form.Input
+			label="Name"
+			value={isSingle ? selected[0].media.name : ''}
+			placeholder={isSingle ? 'Name' : 'Multiple items'}
+			info={isSingle ? undefined : 'Applies to all selected items'}
+			onsave={(name) => Promise.all(selected.map((s) => patchMedia({ id: s.media.id, name })))}
+		/>
+
 		<div class="space-y-2">
 			<h3 class="text-sm font-medium">Tags</h3>
 			<MediaTagInput mediaIds={selected.map((s) => s.media.id)} />
