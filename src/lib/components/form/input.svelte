@@ -2,15 +2,15 @@
 	import * as InputGroup from '$lib/components/ui/input-group';
 	import Indicator from './indicator.svelte';
 	import { debounce, SaveStatus } from './helper';
-	import type { Component } from 'svelte';
+	import type { ComponentProps } from 'svelte';
 
-	type Props = Omit<ComponentProps<Component<typeof InputGroup.Input>>, 'oninput'> & {
+	type Props = ComponentProps<typeof InputGroup.Input> & {
 		label: string;
 		onsave: (value: string) => Promise<void>;
 		delay?: number;
 	};
 
-	let { label, onsave, delay = 500, ...rest }: Props = $props();
+	let { label, onsave, delay = 500, ...props }: Props = $props();
 
 	let status = $state(SaveStatus.Idle);
 	let errorMessage = $state('');
@@ -39,7 +39,7 @@
 
 <div class="space-y-1">
 	<InputGroup.Root>
-		<InputGroup.Input oninput={handleInput} placeholder={label} {...rest} />
+		<InputGroup.Input oninput={handleInput} placeholder={label} {...props} />
 		<InputGroup.Addon align="inline-end">
 			<Indicator {status} />
 		</InputGroup.Addon>

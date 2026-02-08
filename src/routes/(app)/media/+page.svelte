@@ -6,6 +6,7 @@
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	import type { MediaState } from '$lib/components/media';
 	import type { PageProps } from './$types';
+	import { resolve } from '$app/paths';
 	import Empty from './empty.svelte';
 
 	const { data }: PageProps = $props();
@@ -17,20 +18,20 @@
 
 	const selected = $derived(media.filter((m) => m.selected && !m.deleted));
 
-	const handleDelete = (hashes: string[]) => {
-		const hashSet = new Set(hashes);
+	const handleDelete = (ids: string[]) => {
+		const idSet = new Set(ids);
 		media.forEach((m) => {
-			if (hashSet.has(m.media.hash)) {
+			if (idSet.has(m.media.id)) {
 				m.deleted = true;
 				m.selected = false;
 			}
 		});
 	};
 
-	const handleRestore = (hashes: string[]) => {
-		const hashSet = new Set(hashes);
+	const handleRestore = (ids: string[]) => {
+		const idSet = new Set(ids);
 		media.forEach((m) => {
-			if (hashSet.has(m.media.hash)) {
+			if (idSet.has(m.media.id)) {
 				m.deleted = false;
 			}
 		});
@@ -62,10 +63,13 @@
 			{:else}
 				<Media.Grid media={visible}>
 					{#snippet children(state)}
-						<Media.Modal src="/api/media/{state.media.slug}" alt={state.media.name}>
+						<Media.Modal
+							src={resolve('/(app)/media/[slug]', { slug: state.media.slug })}
+							alt={state.media.name}
+						>
 							<div class="flex aspect-square items-center justify-center">
 								<img
-									src="/api/media/{state.media.slug}"
+									src={resolve('/(app)/media/[slug]', { slug: state.media.slug })}
 									alt={state.media.name}
 									class="max-h-full max-w-full rounded-lg"
 									class:ring-2={state.selected}

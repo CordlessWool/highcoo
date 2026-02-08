@@ -4,16 +4,28 @@ export const user = sqliteTable('user', { id: text('id').primaryKey(), age: inte
 
 export const file = sqliteTable('file', {
 	hash: text('hash').primaryKey(),
-	name: text('name').notNull(),
-	slug: text('slug').notNull().unique(),
 	path: text('path').notNull(),
 	mimeType: text('mime_type').notNull(),
 	size: integer('size').notNull(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
+
+export type File = typeof file.$inferSelect;
+
+export const media = sqliteTable('media', {
+	id: text('id').primaryKey(),
+	fileHash: text('file_hash')
+		.notNull()
+		.unique()
+		.references(() => file.hash),
+	name: text('name').notNull(),
+	slug: text('slug').notNull().unique(),
+	description: text('description'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
 	deletedAt: integer('deleted_at', { mode: 'timestamp' })
 });
 
-export type File = typeof file.$inferSelect;
+export type Media = typeof media.$inferSelect;
 
 export const tag = sqliteTable('tag', {
 	id: text('id').primaryKey(),
@@ -29,14 +41,14 @@ export type NewTag = Omit<typeof tag.$inferInsert, 'createdAt'>;
 export const mediaTag = sqliteTable(
 	'media_tag',
 	{
-		mediaHash: text('media_hash')
+		mediaId: text('media_id')
 			.notNull()
-			.references(() => file.hash),
+			.references(() => media.id),
 		tagId: text('tag_id')
 			.notNull()
 			.references(() => tag.id)
 	},
-	(table) => [primaryKey({ columns: [table.mediaHash, table.tagId] })]
+	(table) => [primaryKey({ columns: [table.mediaId, table.tagId] })]
 );
 
 export type MediaTag = typeof mediaTag.$inferSelect;
