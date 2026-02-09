@@ -19,6 +19,14 @@
 		}}
 	/>
 
+	<Form.Input
+		label="Slug"
+		value={tag.slug}
+		onsave={async (slug) => {
+			await patchTag({ id: tag.id, slug });
+		}}
+	/>
+
 	<Form.ColorInput
 		value={tag.color ?? ''}
 		onsave={async (color) => {

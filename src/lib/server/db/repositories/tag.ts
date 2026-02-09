@@ -4,6 +4,7 @@ import type { TagRepository } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import type { Tag, NewTag } from '$lib/logic/tag';
+import { generateSlug } from '$lib/logic/slug';
 
 export const createTagRepository = (db: typeof database): TagRepository => ({
 	async create(input: NewTag): Promise<Tag> {
@@ -11,7 +12,7 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 		const newTag = {
 			id,
 			name: input.name,
-			slug: input.slug ?? null,
+			slug: generateSlug(input.name),
 			description: input.description ?? null,
 			color: input.color ?? null,
 			createdAt: new Date()
