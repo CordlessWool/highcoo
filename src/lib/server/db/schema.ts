@@ -30,7 +30,8 @@ export type Media = typeof media.$inferSelect;
 export const tag = sqliteTable('tag', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
-	slug: text('slug').unique(),
+	slug: text('slug').notNull().unique(),
+	description: text('description'),
 	color: text('color'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });

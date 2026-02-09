@@ -19,7 +19,7 @@
 
 	const handleInput = (e: Event) => {
 		dirty = true;
-		oninput?.(e);
+		oninput?.(e as Event & { currentTarget: EventTarget & HTMLInputElement });
 		if (status === SaveStatus.Error) {
 			status = SaveStatus.Idle;
 			errorMessage = '';
