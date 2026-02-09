@@ -12,6 +12,7 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 			id,
 			name: input.name,
 			slug: input.slug ?? null,
+			description: input.description ?? null,
 			color: input.color ?? null,
 			createdAt: new Date()
 		};
@@ -35,6 +36,10 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 			where: eq(table.tag.slug, slug)
 		});
 		return result ?? null;
+	},
+
+	async patch(id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>): Promise<void> {
+		await db.update(table.tag).set(data).where(eq(table.tag.id, id));
 	},
 
 	async delete(id: string): Promise<void> {

@@ -31,6 +31,7 @@ export const tag = sqliteTable('tag', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
 	slug: text('slug').unique(),
+	description: text('description'),
 	color: text('color'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });

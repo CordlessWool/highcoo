@@ -40,5 +40,6 @@ export interface TagRepository {
 	findAll(): Promise<Tag[]>;
 	findById(id: string): Promise<Tag | null>;
 	findBySlug(slug: string): Promise<Tag | null>;
+	patch(id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>): Promise<void>;
 	delete(id: string): Promise<void>;
 }
