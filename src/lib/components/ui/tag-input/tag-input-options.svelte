@@ -5,12 +5,13 @@
 	import { Plus } from '@lucide/svelte';
 
 	type Props = {
+		class?: string;
 		options?: string[];
 		onadd?: (tag: string) => void;
 		oncreate?: (name: string) => void;
 	};
 
-	let { options = [], onadd, oncreate }: Props = $props();
+	let { class: className, options = [], onadd, oncreate }: Props = $props();
 
 	let value = $state('');
 
@@ -35,8 +36,8 @@
 </script>
 
 <Popover.Root>
-	<Popover.Trigger>
-		<InputGroup.Button size="icon-sm" class="rounded-full" variant="default">
+	<Popover.Trigger class={className}>
+		<InputGroup.Button size="icon-xs" variant="default">
 			<Plus />
 		</InputGroup.Button>
 	</Popover.Trigger>
