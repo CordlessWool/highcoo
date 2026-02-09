@@ -43,13 +43,11 @@
 			</Sidebar.Group>
 		</Sidebar.Content>
 	</Sidebar.Root>
-	<Sidebar.Inset>
-		<main class="flex-1 p-6">
-			{#if selectedTag}
-				<Tag.Detail tag={selectedTag} />
-			{:else}
-				<p class="text-muted-foreground">Select a tag to edit</p>
-			{/if}
-		</main>
+	<Sidebar.Inset class="p-6">
+		{#if selectedTag}
+			<Tag.Detail tag={selectedTag} />
+		{:else}
+			<p class="text-muted-foreground">Select a tag to edit</p>
+		{/if}
 	</Sidebar.Inset>
 </Sidebar.Provider>
