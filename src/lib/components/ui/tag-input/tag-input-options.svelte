@@ -37,7 +37,7 @@
 
 <Popover.Root>
 	<Popover.Trigger class={className}>
-		<InputGroup.Button size="icon-xs" variant="default">
+		<InputGroup.Button variant="default">
 			<Plus />
 		</InputGroup.Button>
 	</Popover.Trigger>

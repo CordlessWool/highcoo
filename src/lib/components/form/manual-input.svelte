@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as InputGroup from '$lib/components/ui/input-group';
-	import * as Label from '$lib/components/ui/label';
 	import Indicator from './indicator.svelte';
 	import { SaveStatus, getErrorMessage } from './helper';
 	import type { ComponentProps } from 'svelte';
@@ -44,7 +43,7 @@
 <div class="space-y-1">
 	<InputGroup.Root>
 		<InputGroup.Addon align="block-start">
-			<Label.Root class="text-foreground">{label}</Label.Root>
+			<InputGroup.Label>{label}</InputGroup.Label>
 			{#if dirty}
 				<InputGroup.Button
 					class="ms-auto"
@@ -55,14 +54,12 @@
 					Save
 				</InputGroup.Button>
 			{:else}
-				<Indicator class="ms-auto" {status} />
+				<Indicator class="ms-auto" bind:status {info} />
 			{/if}
 		</InputGroup.Addon>
 		<InputGroup.Input oninput={handleInput} placeholder={label} bind:value {...props} />
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
 		<p class="text-xs text-destructive">{errorMessage}</p>
-	{:else if info}
-		<p class="text-xs text-muted-foreground">{info}</p>
 	{/if}
 </div>

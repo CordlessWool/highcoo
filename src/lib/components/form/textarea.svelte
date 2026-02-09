@@ -1,6 +1,5 @@
 <script lang="ts">
 	import * as InputGroup from '$lib/components/ui/input-group';
-	import * as Label from '$lib/components/ui/label';
 	import Indicator from './indicator.svelte';
 	import { debounce, SaveStatus, getErrorMessage } from './helper';
 	import type { ComponentProps } from 'svelte';
@@ -42,14 +41,12 @@
 <div class="space-y-1">
 	<InputGroup.Root>
 		<InputGroup.Addon align="block-start">
-			<Label.Root class="text-foreground">{label}</Label.Root>
-			<Indicator class="ms-auto" {status} />
+			<InputGroup.Label>{label}</InputGroup.Label>
+			<Indicator class="ms-auto" bind:status {info} />
 		</InputGroup.Addon>
 		<InputGroup.Textarea oninput={handleInput} placeholder={label} {...props} />
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
 		<p class="text-xs text-destructive">{errorMessage}</p>
-	{:else if info}
-		<p class="text-xs text-muted-foreground">{info}</p>
 	{/if}
 </div>

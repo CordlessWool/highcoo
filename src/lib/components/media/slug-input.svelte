@@ -12,7 +12,7 @@
 
 	const isSingle = $derived(selected.length === 1);
 
-	let value = $derived(isSingle ? selected[0].media.slug : '');
+	const allSame = $derived(selected.every((s) => s.media.slug === selected[0].media.slug));
 
 	const sanitizeSlugInput = (raw: string): string => {
 		return raw
@@ -23,10 +23,13 @@
 
 	const handleInput = (e: Event) => {
 		const input = e.target as HTMLInputElement;
-		const sanitized = sanitizeSlugInput(input.value);
-		value = sanitized;
-		input.value = sanitized;
+		input.value = sanitizeSlugInput(input.value);
 	};
+
+	const info = $derived.by(() => {
+		if (isSingle) return 'Changing the slug will break existing links';
+		return undefined;
+	});
 
 	const handleSave = async (val: string) => {
 		const slug = generateSlug(val);
@@ -39,11 +42,11 @@
 	};
 </script>
 
-<Form.ManualInput
+<Form.Input
 	label="Slug"
-	bind:value
+	value={allSame ? selected[0].media.slug : ''}
+	placeholder={!isSingle && !allSame ? 'Different values' : 'Slug'}
 	oninput={handleInput}
-	placeholder={isSingle ? 'Slug' : 'Change all slugs'}
-	info="Changing slugs will break existing links"
+	{info}
 	onsave={handleSave}
 />

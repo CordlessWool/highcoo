@@ -6,7 +6,6 @@
 
 <script lang="ts">
 	import * as InputGroup from '$lib/components/ui/input-group';
-	import * as Label from '$lib/components/ui/label';
 	import { getTags, createTag } from './tags.remote';
 	import { toast } from 'svelte-sonner';
 	import type { ComponentProps } from 'svelte';
@@ -62,7 +61,7 @@
 <TagInput.Root>
 	{#if label}
 		<InputGroup.Addon align="block-start">
-			<Label.Root class="text-foreground">{label} ({tags.length})</Label.Root>
+			<InputGroup.Label>{label} ({tags.length})</InputGroup.Label>
 			<TagInput.Options
 				class="ms-auto"
 				options={availableOptions}
