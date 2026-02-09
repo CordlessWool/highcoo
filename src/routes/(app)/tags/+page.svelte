@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as Layout from '$lib/components/layout';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import * as Tag from '$lib/components/tag';
 	import { getTags } from '$lib/components/tag/tags.remote';
@@ -16,8 +17,9 @@
 </script>
 
 <Sidebar.Provider>
-	<Sidebar.Root side="left" collapsible="none" class="w-64 border-r">
-		<Sidebar.Header>
+	<Sidebar.Root variant="inset">
+		<Sidebar.Header class="flex flex-col gap-3">
+			<Layout.NavHeader />
 			<Sidebar.Input placeholder="Search tags..." bind:value={search} />
 		</Sidebar.Header>
 		<Sidebar.Content>
@@ -41,11 +43,13 @@
 			</Sidebar.Group>
 		</Sidebar.Content>
 	</Sidebar.Root>
-	<main class="flex-1 p-6">
-		{#if selectedTag}
-			<Tag.Detail tag={selectedTag} />
-		{:else}
-			<p class="text-muted-foreground">Select a tag to edit</p>
-		{/if}
-	</main>
+	<Sidebar.Inset>
+		<main class="flex-1 p-6">
+			{#if selectedTag}
+				<Tag.Detail tag={selectedTag} />
+			{:else}
+				<p class="text-muted-foreground">Select a tag to edit</p>
+			{/if}
+		</main>
+	</Sidebar.Inset>
 </Sidebar.Provider>

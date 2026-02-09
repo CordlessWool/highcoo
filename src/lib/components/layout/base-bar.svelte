@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import NavDropdown from './nav-dropdown.svelte';
+	import NavHeader from './nav-header.svelte';
 
 	type Props = {
 		children?: Snippet;
@@ -10,8 +10,7 @@
 </script>
 
 <header class="flex items-center gap-3 p-3">
-	<img src="/logo.svg" alt="Logo" class="h-10" />
-	<NavDropdown />
+	<NavHeader />
 	<div class="ml-7 flex items-center gap-3">
 		{@render children?.()}
 	</div>
