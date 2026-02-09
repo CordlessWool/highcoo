@@ -1,4 +1,5 @@
 <script lang="ts">
+	import * as Layout from '$lib/components/layout';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import * as Tag from '$lib/components/tag';
 	import { getTags } from '$lib/components/tag/tags.remote';
@@ -17,7 +18,8 @@
 
 <Sidebar.Provider>
 	<Sidebar.Root side="left" collapsible="none" class="w-64 border-r">
-		<Sidebar.Header>
+		<Sidebar.Header class="flex flex-col gap-3">
+			<Layout.NavHeader />
 			<Sidebar.Input placeholder="Search tags..." bind:value={search} />
 		</Sidebar.Header>
 		<Sidebar.Content>
