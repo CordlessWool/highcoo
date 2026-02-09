@@ -5,6 +5,8 @@
 </script>
 
 <script lang="ts">
+	import * as InputGroup from '$lib/components/ui/input-group';
+	import * as Label from '$lib/components/ui/label';
 	import { getTags, createTag } from './tags.remote';
 	import { toast } from 'svelte-sonner';
 	import type { ComponentProps } from 'svelte';
@@ -12,12 +14,13 @@
 	type Item = ComponentProps<typeof TagInput.Item>;
 
 	type Props = {
+		label?: string;
 		tags?: Item[];
 		onselect?: (item: Item) => Promise<void>;
 		onremove?: (item: Item) => Promise<void>;
 	};
 
-	let { tags = $bindable([]), onselect, onremove }: Props = $props();
+	let { label, tags = $bindable([]), onselect, onremove }: Props = $props();
 	console.log(tags);
 	const allTags = getTags();
 
@@ -57,12 +60,20 @@
 </script>
 
 <TagInput.Root>
+	{#if label}
+		<InputGroup.Addon align="block-start">
+			<Label.Root class="text-foreground">{label} ({tags.length})</Label.Root>
+			<TagInput.Options
+				class="ms-auto"
+				options={availableOptions}
+				onadd={handleSelect}
+				oncreate={handleCreate}
+			/>
+		</InputGroup.Addon>
+	{/if}
 	<TagInput.List>
 		{#each tags as tag (tag)}
 			<TagInput.Item {...tag} onremove={handleRemove} />
 		{/each}
 	</TagInput.List>
-	<TagInput.Footer count={tags.length}>
-		<TagInput.Options options={availableOptions} onadd={handleSelect} oncreate={handleCreate} />
-	</TagInput.Footer>
 </TagInput.Root>

@@ -4,10 +4,11 @@
 	import { toast } from 'svelte-sonner';
 
 	type Props = {
+		label?: string;
 		mediaIds: string[];
 	};
 
-	let { mediaIds }: Props = $props();
+	let { label, mediaIds }: Props = $props();
 
 	// Compute common tags (tags that ALL selected media have)
 	const tags = $derived.by(async (): Promise<TagInputItem[]> => {
@@ -40,5 +41,5 @@
 </script>
 
 {#await tags then tags}
-	<TagInput {tags} onselect={handleSelect} onremove={handleRemove} />
+	<TagInput {label} {tags} onselect={handleSelect} onremove={handleRemove} />
 {/await}

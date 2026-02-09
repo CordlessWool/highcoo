@@ -46,9 +46,6 @@
 			}}
 		/>
 
-		<div class="space-y-2">
-			<h3 class="text-sm font-medium">Tags</h3>
-			<MediaTagInput mediaIds={selected.map((s) => s.media.id)} />
-		</div>
+		<MediaTagInput label="Tags" mediaIds={selected.map((s) => s.media.id)} />
 	{/if}
 </div>
