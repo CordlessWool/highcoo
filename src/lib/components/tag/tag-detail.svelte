@@ -19,8 +19,7 @@
 		}}
 	/>
 
-	<Form.Input
-		label="Color"
+	<Form.ColorInput
 		value={tag.color ?? ''}
 		onsave={async (color) => {
 			await patchTag({ id: tag.id, color: color || null });
