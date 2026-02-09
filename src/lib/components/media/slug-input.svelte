@@ -12,11 +12,7 @@
 
 	const isSingle = $derived(selected.length === 1);
 
-	let value = $state('');
-
-	$effect(() => {
-		value = isSingle ? selected[0].media.slug : '';
-	});
+	let value = $derived(isSingle ? selected[0].media.slug : '');
 
 	const sanitizeSlugInput = (raw: string): string => {
 		return raw
@@ -31,11 +27,6 @@
 		value = sanitized;
 		input.value = sanitized;
 	};
-
-	const info = $derived.by(() => {
-		if (!value) return 'Changing slugs will break existing links';
-		return `Will generate: ${selected.map((_, i) => `${value}-${i + 1}`).join(', ')}`;
-	});
 
 	const handleSave = async (val: string) => {
 		const slug = generateSlug(val);
@@ -53,6 +44,6 @@
 	bind:value
 	oninput={handleInput}
 	placeholder={isSingle ? 'Slug' : 'Change all slugs'}
-	{info}
+	info="Changing slugs will break existing links"
 	onsave={handleSave}
 />

@@ -11,7 +11,7 @@
 <div class="mb-3">
 	<h2 class="mt-1 mb-0 text-lg font-semibold">
 		{#if selected.length === 1}
-			{selected[0].media.name}
+			Details
 		{:else}
 			{selected.length} items selected
 		{/if}
