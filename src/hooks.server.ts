@@ -1,3 +1,4 @@
+import { redirect } from '@sveltejs/kit';
 import { sequence } from '@sveltejs/kit/hooks';
 import * as auth from '$lib/server/auth';
 import type { Handle } from '@sveltejs/kit';
@@ -36,4 +37,15 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return resolve(event);
 };
 
-export const handle: Handle = sequence(handleParaglide, handleAuth);
+const handleProtect: Handle = async ({ event, resolve }) => {
+	const { pathname } = event.url;
+	const isPublic = pathname.startsWith('/auth');
+
+	if (!isPublic && !event.locals.user) {
+		redirect(303, '/auth/login');
+	}
+
+	return resolve(event);
+};
+
+export const handle: Handle = sequence(handleParaglide, handleAuth, handleProtect);

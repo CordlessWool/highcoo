@@ -1,6 +1,20 @@
-import { integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
-export const user = sqliteTable('user', { id: text('id').primaryKey(), age: integer('age') });
+export const user = sqliteTable('user', {
+	id: text('id').primaryKey(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
+
+export const credential = sqliteTable('credential', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id),
+	publicKey: blob('public_key', { mode: 'buffer' }).notNull(),
+	counter: integer('counter').notNull(),
+	transports: text('transports'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
 
 export const file = sqliteTable('file', {
 	hash: text('hash').primaryKey(),
@@ -65,3 +79,5 @@ export const session = sqliteTable('session', {
 export type Session = typeof session.$inferSelect;
 
 export type User = typeof user.$inferSelect;
+
+export type Credential = typeof credential.$inferSelect;
