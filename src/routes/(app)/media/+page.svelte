@@ -64,19 +64,10 @@
 				<Media.Grid media={visible}>
 					{#snippet children(state)}
 						<Media.Modal
-							src={resolve('/(app)/media/[slug]', { slug: state.media.slug })}
+							src={resolve('/(app)/file/[hash]', { hash: state.media.fileHash })}
 							alt={state.media.name}
 						>
-							<div class="flex aspect-square items-center justify-center">
-								<img
-									src={resolve('/(app)/media/[slug]', { slug: state.media.slug })}
-									alt={state.media.name}
-									class="max-h-full max-w-full rounded-lg"
-									class:ring-2={state.selected}
-									class:ring-primary={state.selected}
-									class:ring-offset-2={state.selected}
-								/>
-							</div>
+							<Media.Tile {state} />
 						</Media.Modal>
 					{/snippet}
 				</Media.Grid>

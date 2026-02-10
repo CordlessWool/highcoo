@@ -39,7 +39,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 
 const handleProtect: Handle = async ({ event, resolve }) => {
 	const { pathname } = event.url;
-	const isPublic = pathname.startsWith('/auth');
+	const isPublic = pathname.startsWith('/auth') || pathname.startsWith('/media/');
 
 	if (!isPublic && !event.locals.user) {
 		redirect(303, '/auth/login');

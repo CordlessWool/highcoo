@@ -5,6 +5,7 @@ import DeleteButton from './delete-button.svelte';
 import DetailHeading from './detail-heading.svelte';
 import DetailPanel from './detail-panel.svelte';
 import InfoButton from './info-button.svelte';
+import Tile from './media-tile.svelte';
 
 export {
 	UploadButton,
@@ -14,6 +15,7 @@ export {
 	DetailHeading,
 	DetailPanel,
 	InfoButton,
+	Tile,
 	//
 	UploadButton as MediaUploadButton,
 	Modal as MediaModal,
@@ -21,7 +23,8 @@ export {
 	DeleteButton as MediaDeleteButton,
 	DetailHeading as MediaDetailHeading,
 	DetailPanel as MediaDetailPanel,
-	InfoButton as MediaInfoButton
+	InfoButton as MediaInfoButton,
+	Tile as MediaTile
 };
 
 export type { Media, MediaState } from './types';
