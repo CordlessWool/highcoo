@@ -4,6 +4,7 @@ import type { TagRepository } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import type { Tag, NewTag } from '$lib/logic/tag';
+import type { Media } from '../schema';
 import { generateSlug } from '$lib/logic/slug';
 
 export const createTagRepository = (db: typeof database): TagRepository => ({
@@ -37,6 +38,33 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 			where: eq(table.tag.slug, slug)
 		});
 		return result ?? null;
+	},
+
+	async findMediaByTagSlug(slug: string) {
+		const rows = await db
+			.select({
+				tagName: table.tag.name,
+				tagDescription: table.tag.description,
+				mediaSlug: table.media.slug,
+				mediaName: table.media.name
+			})
+			.from(table.tag)
+			.leftJoin(table.mediaTag, eq(table.tag.id, table.mediaTag.tagId))
+			.leftJoin(table.media, eq(table.mediaTag.mediaId, table.media.id))
+			.where(eq(table.tag.slug, slug));
+
+		if (rows.length === 0) return null;
+
+		return {
+			name: rows[0].tagName,
+			description: rows[0].tagDescription,
+			media: rows
+				.filter((r) => r.mediaSlug !== null)
+				.map((r) => ({
+					slug: r.mediaSlug!,
+					name: r.mediaName!
+				}))
+		};
 	},
 
 	async patch(id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>): Promise<void> {
