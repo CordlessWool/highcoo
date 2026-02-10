@@ -24,7 +24,7 @@
 			});
 
 			if (verifyRes.ok) {
-				goto('/');
+				goto('/media');
 			} else {
 				const err = await verifyRes.json();
 				status = err.message ?? 'Login failed';
@@ -49,7 +49,7 @@
 			});
 
 			if (verifyRes.ok) {
-				goto('/');
+				goto('/media');
 			} else {
 				const err = await verifyRes.json();
 				status = err.message ?? 'Registration failed';
@@ -64,7 +64,7 @@
 	<div class="flex w-full max-w-sm flex-col items-center gap-6">
 		<img src="/logo.svg" alt="highcoo" class="h-16" />
 
-		<div class="flex flex-col gap-3 w-full">
+		<div class="flex w-full flex-col gap-3">
 			<Button onclick={handleLogin} class="w-full">
 				<KeyRound class="h-4 w-4" />
 				Sign in with passkey

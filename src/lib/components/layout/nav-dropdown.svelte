@@ -1,13 +1,13 @@
 <script lang="ts">
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronDown, LayoutDashboard, Images, Tags } from '@lucide/svelte';
+	import { ChevronDown, Images, Tags } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import LogoutItem from './logout-item.svelte';
 
 	const routes = [
-		{ href: resolve('/'), label: 'Dashboard', icon: LayoutDashboard },
 		{ href: resolve('/media'), label: 'Media', icon: Images },
 		{ href: resolve('/tags'), label: 'Tags', icon: Tags }
 	] as const;
@@ -32,5 +32,7 @@
 				{route.label}
 			</DropdownMenu.Item>
 		{/each}
+		<DropdownMenu.Separator />
+		<LogoutItem />
 	</DropdownMenu.Content>
 </DropdownMenu.Root>
