@@ -30,16 +30,18 @@
 {:else if status === SaveStatus.Error}
 	<CircleAlert class={cn('size-4 text-destructive', className)} />
 {:else if info}
-	<Tooltip.Root>
-		<Tooltip.Trigger>
-			{#snippet child({ props: triggerProps })}
-				<InputGroup.Button class={className} {...triggerProps} variant="ghost" size="icon-xs">
-					<Info />
-				</InputGroup.Button>
-			{/snippet}
-		</Tooltip.Trigger>
-		<Tooltip.Content>
-			<p>{info}</p>
-		</Tooltip.Content>
-	</Tooltip.Root>
+	<Tooltip.Provider>
+		<Tooltip.Root>
+			<Tooltip.Trigger>
+				{#snippet child({ props: triggerProps })}
+					<InputGroup.Button class={className} {...triggerProps} variant="ghost" size="icon-xs">
+						<Info />
+					</InputGroup.Button>
+				{/snippet}
+			</Tooltip.Trigger>
+			<Tooltip.Content>
+				<p>{info}</p>
+			</Tooltip.Content>
+		</Tooltip.Root>
+	</Tooltip.Provider>
 {/if}
