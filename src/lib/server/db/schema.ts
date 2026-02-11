@@ -1,4 +1,5 @@
-import { blob, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { blob, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { WatermarkPosition } from '$lib/logic/settings';
 
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey(),
@@ -81,3 +82,14 @@ export type Session = typeof session.$inferSelect;
 export type User = typeof user.$inferSelect;
 
 export type Credential = typeof credential.$inferSelect;
+
+export const settings = sqliteTable('settings', {
+	id: integer('id')
+		.primaryKey()
+		.$defaultFn(() => 1),
+	watermarkFileHash: text('watermark_file_hash').references(() => file.hash),
+	watermarkPosition: text('watermark_position').notNull().default(WatermarkPosition.BottomRight),
+	watermarkOpacity: real('watermark_opacity').notNull().default(0.5)
+});
+
+export type Settings = typeof settings.$inferSelect;

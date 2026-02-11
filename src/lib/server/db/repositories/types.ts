@@ -1,6 +1,6 @@
-import type { File, Media } from '../schema';
+import type { File, Media, Settings } from '../schema';
 import type { Tag, NewTag } from '$lib/logic/tag';
-export type { File, Media, Tag, NewTag };
+export type { File, Media, Settings, Tag, NewTag };
 export type NewFile = Omit<File, 'createdAt'> & { createdAt?: Date };
 export type NewMedia = Omit<Media, 'createdAt' | 'deletedAt'> & { createdAt?: Date };
 
@@ -48,4 +48,9 @@ export interface TagRepository {
 	} | null>;
 	patch(id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>): Promise<void>;
 	delete(id: string): Promise<void>;
+}
+
+export interface SettingsRepository {
+	get(): Promise<Settings>;
+	patch(data: Partial<Omit<Settings, 'id'>>): Promise<void>;
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
-	import { ChevronDown, Images, Tags } from '@lucide/svelte';
+	import { ChevronDown, Images, Settings, Tags } from '@lucide/svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
@@ -9,7 +9,8 @@
 
 	const routes = [
 		{ href: resolve('/media'), label: 'Media', icon: Images },
-		{ href: resolve('/tags'), label: 'Tags', icon: Tags }
+		{ href: resolve('/tags'), label: 'Tags', icon: Tags },
+		{ href: resolve('/settings'), label: 'Settings', icon: Settings }
 	] as const;
 
 	const current = $derived(routes.find((r) => r.href === page.url.pathname) ?? routes[0]);
