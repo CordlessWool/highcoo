@@ -24,5 +24,9 @@ export const createFileRepository = (db: typeof database): FileRepository => ({
 	async exists(hash: string): Promise<boolean> {
 		const result = await this.findByHash(hash);
 		return !!result;
+	},
+
+	async delete(hash: string): Promise<void> {
+		await db.delete(table.file).where(eq(table.file.hash, hash));
 	}
 });
