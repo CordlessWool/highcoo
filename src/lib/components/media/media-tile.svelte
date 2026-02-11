@@ -22,6 +22,7 @@
 			class:ring-2={media.selected}
 			class:ring-primary={media.selected}
 			class:ring-offset-2={media.selected}
+			class:ring-offset-background={media.selected}
 		/>
 	{/if}
 </div>
