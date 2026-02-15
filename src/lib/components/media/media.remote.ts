@@ -53,3 +53,7 @@ export const getTagsForMedia = query.batch(v.string(), async (ids: string[]) => 
 	const tagMap = await mediaRepository.getTagsForMany(ids);
 	return (id: string): Tag[] => tagMap.get(id) ?? [];
 });
+
+export const publishMedia = command(v.array(v.string()), async (ids) => {
+	return mediaRepository.publish(ids);
+});

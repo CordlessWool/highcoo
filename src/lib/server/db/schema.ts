@@ -1,5 +1,14 @@
-import { blob, integer, primaryKey, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { WatermarkPosition } from '$lib/logic/settings';
+import {
+	blob,
+	integer,
+	primaryKey,
+	real,
+	sqliteTable,
+	text,
+	uniqueIndex
+} from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { WatermarkPosition } from '../../logic/settings';
 
 export const user = sqliteTable('user', {
 	id: text('id').primaryKey(),
@@ -27,18 +36,31 @@ export const file = sqliteTable('file', {
 
 export type File = typeof file.$inferSelect;
 
-export const media = sqliteTable('media', {
-	id: text('id').primaryKey(),
-	fileHash: text('file_hash')
-		.notNull()
-		.unique()
-		.references(() => file.hash),
-	name: text('name').notNull(),
-	slug: text('slug').notNull().unique(),
-	description: text('description'),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-	deletedAt: integer('deleted_at', { mode: 'timestamp' })
-});
+export const media = sqliteTable(
+	'media',
+	{
+		id: text('id').primaryKey(),
+		fileHash: text('file_hash')
+			.notNull()
+			.references(() => file.hash),
+		name: text('name').notNull(),
+		slug: text('slug').notNull(),
+		description: text('description'),
+		dirty: integer('dirty', { mode: 'boolean' }).notNull().default(true),
+		publishedAt: integer('published_at', { mode: 'timestamp' }),
+		updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
+		deletedAt: integer('deleted_at', { mode: 'timestamp' })
+	},
+	(table) => [
+		uniqueIndex('media_file_hash_draft')
+			.on(table.fileHash)
+			.where(sql`published_at IS NULL`),
+		uniqueIndex('media_slug_draft')
+			.on(table.slug)
+			.where(sql`published_at IS NULL`)
+	]
+);
 
 export type Media = typeof media.$inferSelect;
 

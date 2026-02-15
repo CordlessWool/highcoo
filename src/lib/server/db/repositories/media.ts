@@ -1,16 +1,22 @@
-import { eq, lt, desc, isNull, and, inArray } from 'drizzle-orm';
+import { eq, lt, desc, isNull, isNotNull, and, inArray, notInArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { MediaRepository, NewMedia, Pagination } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import type { Tag } from '$lib/logic/tag';
 
+const isDraft = isNull(table.media.publishedAt);
+const isPublished = isNotNull(table.media.publishedAt);
+const isNotDeleted = isNull(table.media.deletedAt);
+
 export const createMediaRepository = (db: typeof database): MediaRepository => ({
 	async insert(data: NewMedia): Promise<void> {
+		const now = data.createdAt ?? new Date();
 		try {
 			await db.insert(table.media).values({
 				...data,
-				createdAt: data.createdAt ?? new Date()
+				updatedAt: now,
+				createdAt: now
 			});
 		} catch (error: unknown) {
 			if (!(error instanceof Error)) throw error;
@@ -21,25 +27,25 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 				cause.extendedCode === 'SQLITE_CONSTRAINT_UNIQUE';
 			if (!isUnique) throw error;
 
-			// Slug collision - retry with nanoid suffix
 			await db.insert(table.media).values({
 				...data,
 				slug: `${data.slug}-${nanoid(6)}`,
-				createdAt: data.createdAt ?? new Date()
+				updatedAt: now,
+				createdAt: now
 			});
 		}
 	},
 
 	async findById(id: string) {
 		const result = await db.query.media.findFirst({
-			where: and(eq(table.media.id, id), isNull(table.media.deletedAt))
+			where: and(eq(table.media.id, id), isNotDeleted)
 		});
 		return result ?? null;
 	},
 
 	async findBySlug(slug: string) {
 		const result = await db.query.media.findFirst({
-			where: and(eq(table.media.slug, slug), isNull(table.media.deletedAt))
+			where: and(eq(table.media.slug, slug), isDraft, isNotDeleted)
 		});
 		return result ?? null;
 	},
@@ -49,7 +55,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 			.select({ file: table.file })
 			.from(table.media)
 			.innerJoin(table.file, eq(table.media.fileHash, table.file.hash))
-			.where(and(eq(table.media.slug, slug), isNull(table.media.deletedAt)))
+			.where(and(eq(table.media.slug, slug), isDraft, isNotDeleted))
 			.limit(1);
 		return result[0]?.file ?? null;
 	},
@@ -58,8 +64,8 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 		const { limit, cursor } = pagination;
 
 		const whereClause = cursor
-			? and(isNull(table.media.deletedAt), lt(table.media.id, cursor))
-			: isNull(table.media.deletedAt);
+			? and(isDraft, isNotDeleted, lt(table.media.id, cursor))
+			: and(isDraft, isNotDeleted);
 
 		const items = await db
 			.select()
@@ -80,21 +86,44 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async softDelete(id: string): Promise<void> {
-		await db.update(table.media).set({ deletedAt: new Date() }).where(eq(table.media.id, id));
+		const draft = await db.query.media.findFirst({
+			where: eq(table.media.id, id)
+		});
+		if (!draft) return;
+		const now = new Date();
+		await db
+			.update(table.media)
+			.set({ deletedAt: now, updatedAt: now })
+			.where(eq(table.media.fileHash, draft.fileHash));
 	},
 
 	async restore(id: string): Promise<void> {
-		await db.update(table.media).set({ deletedAt: null }).where(eq(table.media.id, id));
+		const draft = await db.query.media.findFirst({
+			where: eq(table.media.id, id)
+		});
+		if (!draft) return;
+		const now = new Date();
+		await db
+			.update(table.media)
+			.set({ deletedAt: null, updatedAt: now, dirty: true })
+			.where(eq(table.media.fileHash, draft.fileHash));
 	},
 
 	async patch(id, data) {
-		await db.update(table.media).set(data).where(eq(table.media.id, id));
+		await db
+			.update(table.media)
+			.set({ ...data, updatedAt: new Date(), dirty: true })
+			.where(eq(table.media.id, id));
 	},
 
 	async addTag(mediaIds: string[], tagId: string): Promise<void> {
 		if (mediaIds.length === 0) return;
 		const values = mediaIds.map((mediaId) => ({ mediaId, tagId }));
 		await db.insert(table.mediaTag).values(values).onConflictDoNothing();
+		await db
+			.update(table.media)
+			.set({ updatedAt: new Date(), dirty: true })
+			.where(inArray(table.media.id, mediaIds));
 	},
 
 	async removeTag(mediaIds: string[], tagId: string): Promise<void> {
@@ -102,6 +131,10 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 		await db
 			.delete(table.mediaTag)
 			.where(and(inArray(table.mediaTag.mediaId, mediaIds), eq(table.mediaTag.tagId, tagId)));
+		await db
+			.update(table.media)
+			.set({ updatedAt: new Date(), dirty: true })
+			.where(inArray(table.media.id, mediaIds));
 	},
 
 	async getTags(mediaId: string): Promise<Tag[]> {
@@ -130,5 +163,85 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 			map.get(row.mediaId)?.push(row.tag);
 		}
 		return map;
+	},
+
+	async publish(ids: string[]): Promise<number> {
+		if (ids.length === 0) return 0;
+
+		const drafts = await db
+			.select()
+			.from(table.media)
+			.where(and(inArray(table.media.id, ids), isDraft, isNotDeleted));
+
+		if (drafts.length === 0) return 0;
+
+		// Slugs within the batch are already unique (enforced by draft partial unique index).
+		// Only check against published versions of files NOT in this batch.
+		const batchFileHashes = drafts.map((d) => d.fileHash);
+
+		for (const draft of drafts) {
+			const conflict = await db
+				.select({ fileHash: table.media.fileHash })
+				.from(table.media)
+				.where(
+					and(
+						eq(table.media.slug, draft.slug),
+						notInArray(table.media.fileHash, batchFileHashes),
+						isPublished,
+						isNotDeleted
+					)
+				)
+				.limit(1);
+
+			if (conflict.length > 0) {
+				throw new Error(`Slug "${draft.slug}" is already published by another image`);
+			}
+		}
+
+		const now = new Date();
+
+		for (const draft of drafts) {
+			const newId = nanoid();
+
+			await db.insert(table.media).values({
+				id: newId,
+				fileHash: draft.fileHash,
+				name: draft.name,
+				slug: draft.slug,
+				description: draft.description,
+				dirty: false,
+				publishedAt: now,
+				updatedAt: now,
+				createdAt: now
+			});
+
+			// Copy tag associations
+			const tags = await db
+				.select({ tagId: table.mediaTag.tagId })
+				.from(table.mediaTag)
+				.where(eq(table.mediaTag.mediaId, draft.id));
+
+			if (tags.length > 0) {
+				await db
+					.insert(table.mediaTag)
+					.values(tags.map((t) => ({ mediaId: newId, tagId: t.tagId })));
+			}
+		}
+
+		// Clear dirty flag on all published drafts
+		await db.update(table.media).set({ dirty: false }).where(inArray(table.media.id, ids));
+
+		return drafts.length;
+	},
+
+	async findPublishedBySlug(slug: string) {
+		const result = await db
+			.select({ file: table.file })
+			.from(table.media)
+			.innerJoin(table.file, eq(table.media.fileHash, table.file.hash))
+			.where(and(eq(table.media.slug, slug), isPublished, isNotDeleted))
+			.orderBy(desc(table.media.publishedAt))
+			.limit(1);
+		return result[0]?.file ?? null;
 	}
 });

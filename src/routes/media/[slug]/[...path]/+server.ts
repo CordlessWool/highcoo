@@ -3,7 +3,7 @@ import { error } from '@sveltejs/kit';
 import { mediaRepository, settingsRepository } from '$lib/server/db/repositories';
 
 export const GET: RequestHandler = async ({ params, fetch }) => {
-	const file = await mediaRepository.findFileBySlug(params.slug);
+	const file = await mediaRepository.findPublishedBySlug(params.slug);
 	if (!file) {
 		throw error(404, 'Media not found');
 	}

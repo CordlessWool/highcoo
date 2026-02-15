@@ -4,10 +4,13 @@
 	import * as Media from '$lib/components/media';
 	import * as Sidebar from '$lib/components/ui/sidebar';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
+	import { Button } from '$lib/components/ui/button';
 	import type { MediaState } from '$lib/components/media';
 	import type { PageProps } from './$types';
 	import { resolve } from '$app/paths';
+	import { Send } from '@lucide/svelte';
 	import Empty from './empty.svelte';
+	import { publishMedia } from '$lib/components/media/media.remote';
 
 	const { data }: PageProps = $props();
 
@@ -15,8 +18,9 @@
 	let detailPanelOpen = $state(false);
 
 	const visible = $derived(media.filter((m) => !m.deleted));
-
 	const selected = $derived(media.filter((m) => m.selected && !m.deleted));
+	const dirty = $derived(visible.filter((m) => m.media.dirty));
+	const dirtyCount = $derived(dirty.length);
 
 	const handleDelete = (ids: string[]) => {
 		const idSet = new Set(ids);
@@ -52,6 +56,24 @@
 						<Media.DeleteButton {selected} ondelete={handleDelete} onrestore={handleRestore} />
 					</ButtonGroup.Root>
 				{/if}
+
+				{#if dirtyCount > 0}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={async () => {
+							await publishMedia(dirty.map((m) => m.media.id));
+						}}
+					>
+						<Send class="mr-2 h-4 w-4" />
+						Publish all
+						<span
+							class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground"
+						>
+							{dirtyCount}
+						</span>
+					</Button>
+				{/if}
 			</Layout.BaseBar>
 
 			<Load.Progress />
@@ -61,7 +83,7 @@
 					<Empty />
 				</div>
 			{:else}
-				<Media.Grid media={visible}>
+				<Media.Grid media={visible} class="mx-3">
 					{#snippet children(state)}
 						<Media.Modal
 							src={resolve('/(app)/file/[hash]', { hash: state.media.fileHash })}

@@ -2,7 +2,12 @@ import type { File, Media, Settings } from '../schema';
 import type { Tag, NewTag } from '$lib/logic/tag';
 export type { File, Media, Settings, Tag, NewTag };
 export type NewFile = Omit<File, 'createdAt'> & { createdAt?: Date };
-export type NewMedia = Omit<Media, 'createdAt' | 'deletedAt'> & { createdAt?: Date };
+export type NewMedia = Omit<
+	Media,
+	'dirty' | 'publishedAt' | 'updatedAt' | 'createdAt' | 'deletedAt'
+> & {
+	createdAt?: Date;
+};
 
 export type Pagination = {
 	limit: number;
@@ -34,6 +39,8 @@ export interface MediaRepository {
 	removeTag(mediaIds: string[], tagId: string): Promise<void>;
 	getTags(mediaId: string): Promise<Tag[]>;
 	getTagsForMany(mediaIds: string[]): Promise<Map<string, Tag[]>>;
+	publish(ids: string[]): Promise<number>;
+	findPublishedBySlug(slug: string): Promise<File | null>;
 }
 
 export interface TagRepository {
@@ -41,7 +48,7 @@ export interface TagRepository {
 	findAll(): Promise<Tag[]>;
 	findById(id: string): Promise<Tag | null>;
 	findBySlug(slug: string): Promise<Tag | null>;
-	findMediaByTagSlug(slug: string): Promise<{
+	findPublishedMediaByTagSlug(slug: string): Promise<{
 		name: string;
 		description: string | null;
 		media: { slug: string; name: string }[];

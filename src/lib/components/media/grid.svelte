@@ -1,13 +1,15 @@
 <script lang="ts">
+	import type { HTMLAttributes } from 'svelte/elements';
 	import type { MediaState } from './types';
 	import type { Snippet } from 'svelte';
+	import { cn } from '$lib/utils';
 
 	type Props = {
 		media: MediaState[];
 		children: Snippet<[MediaState]>;
-	};
+	} & HTMLAttributes<HTMLDivElement>;
 
-	let { media = $bindable(), children }: Props = $props();
+	let { media = $bindable(), children, ...props }: Props = $props();
 
 	let lastSelectedIndex = $state<number | null>(null);
 
@@ -36,7 +38,7 @@
 	};
 </script>
 
-<div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+<div {...props} class={cn('grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5', props.class)}>
 	{#each media as state, index (state.media.id)}
 		<button type="button" class="cursor-pointer text-left" onclick={(e) => handleClick(index, e)}>
 			{@render children(state)}
