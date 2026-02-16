@@ -5,7 +5,7 @@ import * as table from '../schema';
 
 export const createSettingsRepository = (db: typeof database): SettingsRepository => ({
 	async get() {
-		const row = await db.select().from(table.settings).limit(1).get();
+		const [row] = await db.select().from(table.settings).limit(1);
 		return {
 			...defaultSettings,
 			...row

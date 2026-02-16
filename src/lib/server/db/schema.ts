@@ -1,42 +1,44 @@
 import {
-	blob,
+	boolean,
+	bytea,
 	integer,
+	pgTable,
 	primaryKey,
 	real,
-	sqliteTable,
 	text,
+	timestamp,
 	uniqueIndex
-} from 'drizzle-orm/sqlite-core';
+} from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { WatermarkPosition } from '../../logic/settings';
 
-export const user = sqliteTable('user', {
+export const user = pgTable('user', {
 	id: text('id').primaryKey(),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+	createdAt: timestamp('created_at').notNull()
 });
 
-export const credential = sqliteTable('credential', {
+export const credential = pgTable('credential', {
 	id: text('id').primaryKey(),
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id),
-	publicKey: blob('public_key', { mode: 'buffer' }).notNull(),
+	publicKey: bytea('public_key').notNull(),
 	counter: integer('counter').notNull(),
 	transports: text('transports'),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+	createdAt: timestamp('created_at').notNull()
 });
 
-export const file = sqliteTable('file', {
+export const file = pgTable('file', {
 	hash: text('hash').primaryKey(),
 	path: text('path').notNull(),
 	mimeType: text('mime_type').notNull(),
 	size: integer('size').notNull(),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+	createdAt: timestamp('created_at').notNull()
 });
 
 export type File = typeof file.$inferSelect;
 
-export const media = sqliteTable(
+export const media = pgTable(
 	'media',
 	{
 		id: text('id').primaryKey(),
@@ -46,11 +48,11 @@ export const media = sqliteTable(
 		name: text('name').notNull(),
 		slug: text('slug').notNull(),
 		description: text('description'),
-		dirty: integer('dirty', { mode: 'boolean' }).notNull().default(true),
-		publishedAt: integer('published_at', { mode: 'timestamp' }),
-		updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
-		createdAt: integer('created_at', { mode: 'timestamp' }).notNull(),
-		deletedAt: integer('deleted_at', { mode: 'timestamp' })
+		dirty: boolean('dirty').notNull().default(true),
+		publishedAt: timestamp('published_at'),
+		updatedAt: timestamp('updated_at').notNull(),
+		createdAt: timestamp('created_at').notNull(),
+		deletedAt: timestamp('deleted_at')
 	},
 	(table) => [
 		uniqueIndex('media_file_hash_draft')
@@ -64,19 +66,19 @@ export const media = sqliteTable(
 
 export type Media = typeof media.$inferSelect;
 
-export const tag = sqliteTable('tag', {
+export const tag = pgTable('tag', {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
 	slug: text('slug').notNull().unique(),
 	description: text('description'),
 	color: text('color'),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+	createdAt: timestamp('created_at').notNull()
 });
 
 export type Tag = typeof tag.$inferSelect;
 export type NewTag = Omit<typeof tag.$inferInsert, 'createdAt'>;
 
-export const mediaTag = sqliteTable(
+export const mediaTag = pgTable(
 	'media_tag',
 	{
 		mediaId: text('media_id')
@@ -91,12 +93,12 @@ export const mediaTag = sqliteTable(
 
 export type MediaTag = typeof mediaTag.$inferSelect;
 
-export const session = sqliteTable('session', {
+export const session = pgTable('session', {
 	id: text('id').primaryKey(),
 	userId: text('user_id')
 		.notNull()
 		.references(() => user.id),
-	expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull()
+	expiresAt: timestamp('expires_at').notNull()
 });
 
 export type Session = typeof session.$inferSelect;
@@ -105,7 +107,7 @@ export type User = typeof user.$inferSelect;
 
 export type Credential = typeof credential.$inferSelect;
 
-export const settings = sqliteTable('settings', {
+export const settings = pgTable('settings', {
 	id: integer('id')
 		.primaryKey()
 		.$defaultFn(() => 1),

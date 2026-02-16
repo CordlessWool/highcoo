@@ -36,9 +36,11 @@ export const PUT: RequestHandler = async (event) => {
 
 	const body = await event.request.json();
 
-	const credentialRecord = await db.query.credential.findFirst({
-		where: eq(table.credential.id, body.id)
-	});
+	const [credentialRecord] = await db
+		.select()
+		.from(table.credential)
+		.where(eq(table.credential.id, body.id))
+		.limit(1);
 
 	if (!credentialRecord) {
 		error(400, 'Unknown credential');

@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import type { TagRepository } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
+import { UniqueConstraintError, isUniqueViolation } from '../errors';
 import type { Tag, NewTag } from '$lib/logic/tag';
 import { generateSlug } from '$lib/logic/slug';
 
@@ -26,16 +27,12 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 	},
 
 	async findById(id: string): Promise<Tag | null> {
-		const result = await db.query.tag.findFirst({
-			where: eq(table.tag.id, id)
-		});
+		const [result] = await db.select().from(table.tag).where(eq(table.tag.id, id)).limit(1);
 		return result ?? null;
 	},
 
 	async findBySlug(slug: string): Promise<Tag | null> {
-		const result = await db.query.tag.findFirst({
-			where: eq(table.tag.slug, slug)
-		});
+		const [result] = await db.select().from(table.tag).where(eq(table.tag.slug, slug)).limit(1);
 		return result ?? null;
 	},
 
@@ -77,7 +74,13 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 	},
 
 	async patch(id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>): Promise<void> {
-		await db.update(table.tag).set(data).where(eq(table.tag.id, id));
+		try {
+			await db.update(table.tag).set(data).where(eq(table.tag.id, id));
+		} catch (error: unknown) {
+			const violation = isUniqueViolation(error);
+			if (violation) throw new UniqueConstraintError(violation.constraint);
+			throw error;
+		}
 	},
 
 	async delete(id: string): Promise<void> {

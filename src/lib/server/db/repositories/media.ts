@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid';
 import type { MediaRepository, NewMedia, Pagination } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
+import { UniqueConstraintError, isUniqueViolation } from '../errors';
 import type { Tag } from '$lib/logic/tag';
 
 const isDraft = isNull(table.media.publishedAt);
@@ -19,13 +20,8 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 				createdAt: now
 			});
 		} catch (error: unknown) {
-			if (!(error instanceof Error)) throw error;
-			const cause = 'cause' in error ? error.cause : null;
-			const isUnique =
-				cause instanceof Error &&
-				'extendedCode' in cause &&
-				cause.extendedCode === 'SQLITE_CONSTRAINT_UNIQUE';
-			if (!isUnique) throw error;
+			const violation = isUniqueViolation(error);
+			if (!violation || violation.constraint !== 'media_slug_draft') throw error;
 
 			await db.insert(table.media).values({
 				...data,
@@ -37,16 +33,20 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async findById(id: string) {
-		const result = await db.query.media.findFirst({
-			where: and(eq(table.media.id, id), isNotDeleted)
-		});
+		const [result] = await db
+			.select()
+			.from(table.media)
+			.where(and(eq(table.media.id, id), isNotDeleted))
+			.limit(1);
 		return result ?? null;
 	},
 
 	async findBySlug(slug: string) {
-		const result = await db.query.media.findFirst({
-			where: and(eq(table.media.slug, slug), isDraft, isNotDeleted)
-		});
+		const [result] = await db
+			.select()
+			.from(table.media)
+			.where(and(eq(table.media.slug, slug), isDraft, isNotDeleted))
+			.limit(1);
 		return result ?? null;
 	},
 
@@ -86,9 +86,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async softDelete(id: string): Promise<void> {
-		const draft = await db.query.media.findFirst({
-			where: eq(table.media.id, id)
-		});
+		const [draft] = await db.select().from(table.media).where(eq(table.media.id, id)).limit(1);
 		if (!draft) return;
 		const now = new Date();
 		await db
@@ -98,9 +96,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async restore(id: string): Promise<void> {
-		const draft = await db.query.media.findFirst({
-			where: eq(table.media.id, id)
-		});
+		const [draft] = await db.select().from(table.media).where(eq(table.media.id, id)).limit(1);
 		if (!draft) return;
 		const now = new Date();
 		await db
@@ -110,10 +106,16 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async patch(id, data) {
-		await db
-			.update(table.media)
-			.set({ ...data, updatedAt: new Date(), dirty: true })
-			.where(eq(table.media.id, id));
+		try {
+			await db
+				.update(table.media)
+				.set({ ...data, updatedAt: new Date(), dirty: true })
+				.where(eq(table.media.id, id));
+		} catch (error: unknown) {
+			const violation = isUniqueViolation(error);
+			if (violation) throw new UniqueConstraintError(violation.constraint);
+			throw error;
+		}
 	},
 
 	async addTag(mediaIds: string[], tagId: string): Promise<void> {

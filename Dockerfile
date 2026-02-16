@@ -55,8 +55,6 @@ COPY --from=prerelease /usr/src/app/package.json .
 COPY --from=prerelease /usr/src/app/drizzle.config.ts .
 COPY --from=prerelease /usr/src/app/drizzle ./drizzle
 
-RUN mkdir -p /data
-ENV DATABASE_URL="file:/data/container.db"
 ENV PORT=3001
 
 EXPOSE 3001/tcp
@@ -64,11 +62,6 @@ EXPOSE 3001/tcp
 COPY --chmod=755 <<EOT /entrypoint.sh
 #!/usr/bin/env bash
 set -e
-if ! [ -e /data/container.db ]; then
-    touch /data/container.db
-fi
-chown -R bun:bun /data
-
 exec su bun -c "bunx drizzle-kit migrate --config=drizzle.config.ts && bun ./index.js"
 EOT
 

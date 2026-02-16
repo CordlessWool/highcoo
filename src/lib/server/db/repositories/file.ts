@@ -15,9 +15,7 @@ export const createFileRepository = (db: typeof database): FileRepository => ({
 	},
 
 	async findByHash(hash: string) {
-		const result = await db.query.file.findFirst({
-			where: eq(table.file.hash, hash)
-		});
+		const [result] = await db.select().from(table.file).where(eq(table.file.hash, hash)).limit(1);
 		return result ?? null;
 	},
 
