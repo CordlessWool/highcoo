@@ -7,7 +7,6 @@
 	import { Button } from '$lib/components/ui/button';
 	import type { MediaState } from '$lib/components/media';
 	import type { PageProps } from './$types';
-	import { resolve } from '$app/paths';
 	import { Send } from '@lucide/svelte';
 	import Empty from './empty.svelte';
 	import { publishMedia } from '$lib/components/media/media.remote';
@@ -84,13 +83,8 @@
 				</div>
 			{:else}
 				<Media.Grid media={visible} class="mx-3">
-					{#snippet children(state)}
-						<Media.Modal
-							src={resolve('/(app)/file/[hash]', { hash: state.media.fileHash })}
-							alt={state.media.name}
-						>
-							<Media.Tile {state} />
-						</Media.Modal>
+					{#snippet children(state, onclick)}
+						<Media.Tile {state} {onclick} />
 					{/snippet}
 				</Media.Grid>
 			{/if}

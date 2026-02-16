@@ -6,12 +6,13 @@
 
 	type Props = {
 		media: MediaState[];
-		children: Snippet<[MediaState]>;
+		children: Snippet<[MediaState, (e: MouseEvent) => void]>;
 	} & HTMLAttributes<HTMLDivElement>;
 
 	let { media = $bindable(), children, ...props }: Props = $props();
 
 	let lastSelectedIndex = $state<number | null>(null);
+	let clientWidth = $state(0);
 
 	const handleClick = (index: number, event: MouseEvent) => {
 		const item = media[index];
@@ -40,8 +41,8 @@
 
 <div {...props} class={cn('grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5', props.class)}>
 	{#each media as state, index (state.media.id)}
-		<button type="button" class="cursor-pointer text-left" onclick={(e) => handleClick(index, e)}>
-			{@render children(state)}
-		</button>
+		<div class="relative grid aspect-square content-center justify-center">
+			{@render children(state, (e) => handleClick(index, e))}
+		</div>
 	{/each}
 </div>
