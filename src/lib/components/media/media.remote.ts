@@ -51,3 +51,11 @@ export const getTagsForMedia = query.batch(v.string(), async (ids: string[]) => 
 export const publishMedia = command(v.array(v.string()), async (ids) => {
 	return mediaRepository.publish(ids);
 });
+
+export const softDeleteMedia = command(v.array(v.string()), async (ids) => {
+	await Promise.all(ids.map((id) => mediaRepository.softDelete(id)));
+});
+
+export const restoreMedia = command(v.array(v.string()), async (ids) => {
+	await Promise.all(ids.map((id) => mediaRepository.restore(id)));
+});
