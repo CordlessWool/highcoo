@@ -1,8 +1,6 @@
 import { json, error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import { nanoid } from 'nanoid';
-import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
 import * as auth from '$lib/server/auth';
@@ -16,12 +14,10 @@ export const POST: RequestHandler = async (event) => {
 		error(403, 'Registration is disabled');
 	}
 
-	const userId = nanoid();
-
 	const options = await generateRegistrationOptions({
 		rpName,
 		rpID,
-		userName: userId,
+		userName: 'user',
 		authenticatorSelection: {
 			residentKey: 'required',
 			userVerification: 'preferred'
@@ -29,12 +25,6 @@ export const POST: RequestHandler = async (event) => {
 	});
 
 	event.cookies.set('webauthn-challenge', options.challenge, {
-		path: '/auth',
-		httpOnly: true,
-		sameSite: 'strict',
-		maxAge: 60 * 5
-	});
-	event.cookies.set('webauthn-user-id', userId, {
 		path: '/auth',
 		httpOnly: true,
 		sameSite: 'strict',
@@ -50,10 +40,9 @@ export const PUT: RequestHandler = async (event) => {
 	}
 
 	const challenge = event.cookies.get('webauthn-challenge');
-	const userId = event.cookies.get('webauthn-user-id');
 
-	if (!challenge || !userId) {
-		error(400, 'Missing challenge or user ID');
+	if (!challenge) {
+		error(400, 'Missing challenge');
 	}
 
 	const body = await event.request.json();
@@ -71,27 +60,22 @@ export const PUT: RequestHandler = async (event) => {
 
 	const { credential } = verification.registrationInfo;
 
-	await db.insert(table.user).values({
-		id: userId,
-		createdAt: new Date()
-	});
+	const [user] = await db.insert(table.user).values({}).returning({ id: table.user.id });
 
 	await db.insert(table.credential).values({
 		id: credential.id,
-		userId,
+		userId: user.id,
 		publicKey: Buffer.from(credential.publicKey),
 		counter: credential.counter,
-		transports: credential.transports ? JSON.stringify(credential.transports) : null,
-		createdAt: new Date()
+		transports: credential.transports ? JSON.stringify(credential.transports) : null
 	});
 
-	// Clean up challenge cookies
+	// Clean up challenge cookie
 	event.cookies.delete('webauthn-challenge', { path: '/auth' });
-	event.cookies.delete('webauthn-user-id', { path: '/auth' });
 
 	// Create session
 	const token = auth.generateSessionToken();
-	const session = await auth.createSession(token, userId);
+	const session = await auth.createSession(token, user.id);
 	auth.setSessionTokenCookie(event, token, session.expiresAt);
 
 	return json({ verified: true });

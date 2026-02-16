@@ -11,24 +11,23 @@ const isPublished = isNotNull(table.media.publishedAt);
 const isNotDeleted = isNull(table.media.deletedAt);
 
 export const createMediaRepository = (db: typeof database): MediaRepository => ({
-	async insert(data: NewMedia): Promise<void> {
-		const now = data.createdAt ?? new Date();
+	async insert(data: NewMedia): Promise<string> {
+		const now = new Date();
 		try {
-			await db.insert(table.media).values({
-				...data,
-				updatedAt: now,
-				createdAt: now
-			});
+			const [row] = await db
+				.insert(table.media)
+				.values({ ...data, updatedAt: now })
+				.returning({ id: table.media.id });
+			return row.id;
 		} catch (error: unknown) {
 			const violation = isUniqueViolation(error);
 			if (!violation || violation.constraint !== 'media_slug_draft') throw error;
 
-			await db.insert(table.media).values({
-				...data,
-				slug: `${data.slug}-${nanoid(6)}`,
-				updatedAt: now,
-				createdAt: now
-			});
+			const [row] = await db
+				.insert(table.media)
+				.values({ ...data, slug: `${data.slug}-${nanoid(6)}`, updatedAt: now })
+				.returning({ id: table.media.id });
+			return row.id;
 		}
 	},
 
@@ -203,19 +202,18 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 		const now = new Date();
 
 		for (const draft of drafts) {
-			const newId = nanoid();
-
-			await db.insert(table.media).values({
-				id: newId,
-				fileHash: draft.fileHash,
-				name: draft.name,
-				slug: draft.slug,
-				description: draft.description,
-				dirty: false,
-				publishedAt: now,
-				updatedAt: now,
-				createdAt: now
-			});
+			const [published] = await db
+				.insert(table.media)
+				.values({
+					fileHash: draft.fileHash,
+					name: draft.name,
+					slug: draft.slug,
+					description: draft.description,
+					dirty: false,
+					publishedAt: now,
+					updatedAt: now
+				})
+				.returning({ id: table.media.id });
 
 			// Copy tag associations
 			const tags = await db
@@ -226,7 +224,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 			if (tags.length > 0) {
 				await db
 					.insert(table.mediaTag)
-					.values(tags.map((t) => ({ mediaId: newId, tagId: t.tagId })));
+					.values(tags.map((t) => ({ mediaId: published.id, tagId: t.tagId })));
 			}
 		}
 

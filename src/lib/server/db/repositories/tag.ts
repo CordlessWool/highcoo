@@ -1,25 +1,23 @@
 import { eq, isNotNull, max } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 import type { TagRepository } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
-import { UniqueConstraintError, isUniqueViolation } from '../errors';
 import type { Tag, NewTag } from '$lib/logic/tag';
+import { UniqueConstraintError, isUniqueViolation } from '../errors';
 import { generateSlug } from '$lib/logic/slug';
 
 export const createTagRepository = (db: typeof database): TagRepository => ({
 	async create(input: NewTag): Promise<Tag> {
-		const id = nanoid();
-		const newTag = {
-			id,
-			name: input.name,
-			slug: generateSlug(input.name),
-			description: input.description ?? null,
-			color: input.color ?? null,
-			createdAt: new Date()
-		};
-		await db.insert(table.tag).values(newTag);
-		return newTag;
+		const [tag] = await db
+			.insert(table.tag)
+			.values({
+				name: input.name,
+				slug: generateSlug(input.name),
+				description: input.description ?? null,
+				color: input.color ?? null
+			})
+			.returning();
+		return tag;
 	},
 
 	async findAll(): Promise<Tag[]> {
@@ -73,7 +71,7 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 		};
 	},
 
-	async patch(id: string, data: Partial<Omit<Tag, 'id' | 'createdAt'>>): Promise<void> {
+	async patch(id: string, data: Partial<Omit<Tag, 'id'>>): Promise<void> {
 		try {
 			await db.update(table.tag).set(data).where(eq(table.tag.id, id));
 		} catch (error: unknown) {

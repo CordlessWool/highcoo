@@ -14,7 +14,6 @@ export const GET: RequestHandler = async ({ params }) => {
 	return json({
 		hash: file.hash,
 		mimeType: file.mimeType,
-		size: file.size,
-		createdAt: file.createdAt
+		size: file.size
 	});
 };

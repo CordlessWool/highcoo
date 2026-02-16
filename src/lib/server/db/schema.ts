@@ -7,33 +7,36 @@ import {
 	real,
 	text,
 	timestamp,
-	uniqueIndex
+	uniqueIndex,
+	uuid
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { WatermarkPosition } from '../../logic/settings';
 
+const uuidv7pk = () =>
+	uuid()
+		.primaryKey()
+		.default(sql`uuidv7()`);
+
 export const user = pgTable('user', {
-	id: text('id').primaryKey(),
-	createdAt: timestamp('created_at').notNull()
+	id: uuidv7pk()
 });
 
 export const credential = pgTable('credential', {
 	id: text('id').primaryKey(),
-	userId: text('user_id')
+	userId: uuid('user_id')
 		.notNull()
 		.references(() => user.id),
 	publicKey: bytea('public_key').notNull(),
 	counter: integer('counter').notNull(),
-	transports: text('transports'),
-	createdAt: timestamp('created_at').notNull()
+	transports: text('transports')
 });
 
 export const file = pgTable('file', {
 	hash: text('hash').primaryKey(),
 	path: text('path').notNull(),
 	mimeType: text('mime_type').notNull(),
-	size: integer('size').notNull(),
-	createdAt: timestamp('created_at').notNull()
+	size: integer('size').notNull()
 });
 
 export type File = typeof file.$inferSelect;
@@ -41,7 +44,7 @@ export type File = typeof file.$inferSelect;
 export const media = pgTable(
 	'media',
 	{
-		id: text('id').primaryKey(),
+		id: uuidv7pk(),
 		fileHash: text('file_hash')
 			.notNull()
 			.references(() => file.hash),
@@ -51,7 +54,6 @@ export const media = pgTable(
 		dirty: boolean('dirty').notNull().default(true),
 		publishedAt: timestamp('published_at'),
 		updatedAt: timestamp('updated_at').notNull(),
-		createdAt: timestamp('created_at').notNull(),
 		deletedAt: timestamp('deleted_at')
 	},
 	(table) => [
@@ -67,24 +69,23 @@ export const media = pgTable(
 export type Media = typeof media.$inferSelect;
 
 export const tag = pgTable('tag', {
-	id: text('id').primaryKey(),
+	id: uuidv7pk(),
 	name: text('name').notNull(),
 	slug: text('slug').notNull().unique(),
 	description: text('description'),
-	color: text('color'),
-	createdAt: timestamp('created_at').notNull()
+	color: text('color')
 });
 
 export type Tag = typeof tag.$inferSelect;
-export type NewTag = Omit<typeof tag.$inferInsert, 'createdAt'>;
+export type NewTag = Omit<typeof tag.$inferInsert, 'id' | 'slug'>;
 
 export const mediaTag = pgTable(
 	'media_tag',
 	{
-		mediaId: text('media_id')
+		mediaId: uuid('media_id')
 			.notNull()
 			.references(() => media.id),
-		tagId: text('tag_id')
+		tagId: uuid('tag_id')
 			.notNull()
 			.references(() => tag.id)
 	},
@@ -95,7 +96,7 @@ export type MediaTag = typeof mediaTag.$inferSelect;
 
 export const session = pgTable('session', {
 	id: text('id').primaryKey(),
-	userId: text('user_id')
+	userId: uuid('user_id')
 		.notNull()
 		.references(() => user.id),
 	expiresAt: timestamp('expires_at').notNull()

@@ -5,13 +5,7 @@ import * as table from '../schema';
 
 export const createFileRepository = (db: typeof database): FileRepository => ({
 	async insert(data: NewFile): Promise<void> {
-		await db
-			.insert(table.file)
-			.values({
-				...data,
-				createdAt: data.createdAt ?? new Date()
-			})
-			.onConflictDoNothing();
+		await db.insert(table.file).values(data).onConflictDoNothing();
 	},
 
 	async findByHash(hash: string) {

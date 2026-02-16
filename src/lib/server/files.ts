@@ -1,5 +1,4 @@
 import { extname } from 'path';
-import { nanoid } from 'nanoid';
 import { generateSlug } from '$lib/logic/slug';
 import type { StorageAdapter } from './storage/types';
 import type { FileRepository, MediaRepository } from './db/repositories/types';
@@ -33,10 +32,8 @@ export const saveFile = async (fileData: FileData, services: Services) => {
 
 	const name = file.name;
 	const slug = generateSlug(name);
-	const id = nanoid();
 
-	await mediaRepository.insert({
-		id,
+	const id = await mediaRepository.insert({
 		fileHash: hash,
 		name,
 		slug,
