@@ -7,7 +7,7 @@
 	type Props = {
 		media: MediaState[];
 		children: Snippet<[MediaState, (e: MouseEvent) => void]>;
-	} & HTMLAttributes<HTMLDivElement>;
+	} & Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
 
 	let { media = $bindable(), children, ...props }: Props = $props();
 

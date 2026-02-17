@@ -32,7 +32,7 @@
 	};
 
 	const handleRemove = (index: number) => () => {
-		value = value?.filter((_, i) => i !== index);
+		value = value?.filter((_: string, i: number) => i !== index);
 	};
 </script>
 
