@@ -1,6 +1,6 @@
-import type { File, Media, Settings } from '../schema';
-import type { Tag, NewTag } from '$lib/logic/tag';
-export type { File, Media, Settings, Tag, NewTag };
+import type { File, Media, Settings, TagContent } from '../schema';
+import type { Tag, NewTag, NewTagContent } from '$lib/logic/tag';
+export type { File, Media, Settings, Tag, NewTag, TagContent, NewTagContent };
 export type NewFile = File;
 export type NewMedia = Omit<Media, 'id' | 'dirty' | 'publishedAt' | 'updatedAt' | 'deletedAt'>;
 
@@ -42,14 +42,19 @@ export interface TagRepository {
 	create(input: NewTag): Promise<Tag>;
 	findAll(): Promise<Tag[]>;
 	findById(id: string): Promise<Tag | null>;
-	findBySlug(slug: string): Promise<Tag | null>;
-	findPublishedMediaByTagSlug(slug: string): Promise<{
-		name: string;
-		description: string | null;
-		media: { slug: string; name: string }[];
-	} | null>;
 	patch(id: string, data: Partial<Omit<Tag, 'id'>>): Promise<void>;
 	delete(id: string): Promise<void>;
+}
+
+export interface TagContentRepository {
+	create(input: NewTagContent): Promise<TagContent>;
+	findByTagId(tagId: string): Promise<TagContent | null>;
+	patch(
+		id: string,
+		data: Partial<Omit<TagContent, 'id' | 'tagId' | 'dirty' | 'publishedAt' | 'updatedAt'>>
+	): Promise<void>;
+	publish(tagId: string): Promise<void>;
+	findPublishedBySlug(slug: string): Promise<TagContent | null>;
 }
 
 export interface SettingsRepository {

@@ -1,15 +1,15 @@
 import { json, error } from '@sveltejs/kit';
-import { tagRepository } from '$lib/server/db/repositories';
+import { tagContentRepository } from '$lib/server/db/repositories';
 import type { RequestHandler } from './$types';
 
 export const GET: RequestHandler = async ({ params }) => {
-	const result = await tagRepository.findPublishedMediaByTagSlug(params.slug);
+	const result = await tagContentRepository.findPublishedMediaByTagSlug(params.slug);
 	if (!result) {
 		throw error(404, 'Tag not found');
 	}
 
 	return json({
-		name: result.name,
+		title: result.title,
 		description: result.description,
 		media: result.media.map((m) => ({
 			name: m.name,

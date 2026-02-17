@@ -71,13 +71,37 @@ export type Media = typeof media.$inferSelect;
 export const tag = pgTable('tag', {
 	id: uuidv7pk(),
 	name: text('name').notNull(),
-	slug: text('slug').notNull().unique(),
-	description: text('description'),
 	color: text('color')
 });
 
 export type Tag = typeof tag.$inferSelect;
-export type NewTag = Omit<typeof tag.$inferInsert, 'id' | 'slug'>;
+export type NewTag = Omit<typeof tag.$inferInsert, 'id'>;
+
+export const tagContent = pgTable(
+	'tag_content',
+	{
+		id: uuidv7pk(),
+		tagId: uuid('tag_id')
+			.notNull()
+			.references(() => tag.id, { onDelete: 'cascade' }),
+		title: text('title'),
+		slug: text('slug').notNull(),
+		description: text('description'),
+		dirty: boolean('dirty').notNull().default(true),
+		publishedAt: timestamp('published_at'),
+		updatedAt: timestamp('updated_at').notNull()
+	},
+	(table) => [
+		uniqueIndex('tag_content_tag_id_draft')
+			.on(table.tagId)
+			.where(sql`published_at IS NULL`),
+		uniqueIndex('tag_content_slug_draft')
+			.on(table.slug)
+			.where(sql`published_at IS NULL`)
+	]
+);
+
+export type TagContent = typeof tagContent.$inferSelect;
 
 export const mediaTag = pgTable(
 	'media_tag',
