@@ -7,7 +7,7 @@
 		state: MediaState;
 		onclick?: (e: MouseEvent) => void;
 	};
-	const { state: media, onclick, ...props }: Props = $props();
+	const { state: media, onclick }: Props = $props();
 
 	const src = $derived(resolve('/(app)/file/[hash]', { hash: media.media.fileHash }));
 

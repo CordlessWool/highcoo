@@ -8,9 +8,9 @@
 	import LogoutItem from './logout-item.svelte';
 
 	const routes = [
-		{ href: resolve('/media'), label: 'Media', icon: Images },
-		{ href: resolve('/tags'), label: 'Tags', icon: Tags },
-		{ href: resolve('/settings'), label: 'Settings', icon: Settings }
+		{ href: '/media', label: 'Media', icon: Images },
+		{ href: '/tags', label: 'Tags', icon: Tags },
+		{ href: '/settings', label: 'Settings', icon: Settings }
 	] as const;
 
 	const current = $derived(routes.find((r) => r.href === page.url.pathname) ?? routes[0]);
@@ -28,7 +28,7 @@
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content align="start">
 		{#each routes.filter((r) => r.href !== current.href) as route (route.href)}
-			<DropdownMenu.Item onSelect={() => goto(route.href)}>
+			<DropdownMenu.Item onSelect={() => goto(resolve(route.href))}>
 				<route.icon class="mr-2 h-4 w-4" />
 				{route.label}
 			</DropdownMenu.Item>

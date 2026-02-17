@@ -52,7 +52,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		});
 	}
 
-	let buffer = Buffer.from(await new Response(stream).arrayBuffer());
+	const buffer = Buffer.from(await new Response(stream).arrayBuffer());
 	const metadata = await sharp(buffer).metadata();
 	let image = sharp(buffer).autoOrient();
 
@@ -110,7 +110,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		}
 	}
 
-	const result = await image.webp().toBuffer();
+	const result = new Uint8Array(await image.webp().toBuffer());
 
 	return new Response(result, {
 		headers: {

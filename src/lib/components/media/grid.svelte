@@ -12,7 +12,6 @@
 	let { media = $bindable(), children, ...props }: Props = $props();
 
 	let lastSelectedIndex = $state<number | null>(null);
-	let clientWidth = $state(0);
 
 	const handleClick = (index: number, event: MouseEvent) => {
 		const item = media[index];
