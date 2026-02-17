@@ -13,7 +13,8 @@ const PartialTag = v.object({
 
 const PartialTagContent = v.object({
 	id: v.string(),
-	title: v.optional(v.string()),
+	tagId: v.string(),
+	title: v.optional(v.nullable(v.string())),
 	slug: v.optional(v.string()),
 	description: v.optional(v.nullable(v.string()))
 });
@@ -47,9 +48,11 @@ export const createTagContent = command(NewTagContent, async (input): Promise<Ta
 	}
 });
 
-export const patchTagContent = command(PartialTagContent, async ({ id, ...data }) => {
+export const patchTagContent = command(PartialTagContent, async ({ id, tagId, ...data }) => {
 	try {
 		await tagContentRepository.patch(id, data);
+		const cached = await getTagContent(tagId);
+		if (cached) getTagContent(tagId).set({ ...cached, ...data, dirty: true });
 	} catch (err: unknown) {
 		if (err instanceof UniqueConstraintError) error(409, 'Slug is already taken');
 		throw err;
