@@ -1,4 +1,5 @@
 import { eq, and, isNull, isNotNull, ne, desc } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 import type { TagContentRepository } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
@@ -25,8 +26,19 @@ export const createTagContentRepository = (db: typeof database): TagContentRepos
 			return content;
 		} catch (error: unknown) {
 			const violation = isUniqueViolation(error);
-			if (violation) throw new UniqueConstraintError(violation.constraint);
-			throw error;
+			if (!violation || violation.constraint !== 'tag_content_slug_draft') throw error;
+
+			const [content] = await db
+				.insert(table.tagContent)
+				.values({
+					tagId: input.tagId,
+					title: input.title ?? null,
+					slug: `${input.slug}-${nanoid(6)}`,
+					description: input.description ?? null,
+					updatedAt: now
+				})
+				.returning();
+			return content;
 		}
 	},
 
