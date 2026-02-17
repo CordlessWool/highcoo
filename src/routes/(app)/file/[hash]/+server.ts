@@ -22,7 +22,8 @@ export const HEAD: RequestHandler = async ({ params }) => {
 	return new Response(null, {
 		headers: {
 			'Content-Type': file.mimeType,
-			'Content-Length': String(file.size)
+			'Content-Length': String(file.size),
+			'Cache-Control': 'no-cache'
 		}
 	});
 };

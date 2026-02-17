@@ -32,7 +32,7 @@ const hashFile = async (file: File): Promise<string> => {
 };
 
 const fileExists = async (hash: string): Promise<boolean> => {
-	const res = await fetch(`/file/${hash}`, { method: 'HEAD' });
+	const res = await fetch(`/file/${hash}`, { method: 'HEAD', cache: 'no-store' });
 	return res.ok;
 };
 
