@@ -51,7 +51,8 @@ export const PUT: RequestHandler = async (event) => {
 		response: body,
 		expectedChallenge: challenge,
 		expectedOrigin: origin,
-		expectedRPID: rpID
+		expectedRPID: rpID,
+		requireUserVerification: false
 	});
 
 	if (!verification.verified || !verification.registrationInfo) {

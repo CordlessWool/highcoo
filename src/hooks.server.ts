@@ -38,9 +38,9 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 };
 
 const handleProtect: Handle = async ({ event, resolve }) => {
-	const isPublic = !(event.route.id ?? '').startsWith('(app)');
+	const isPrivate = (event.route.id ?? '').startsWith('/(app)');
 
-	if (!isPublic && !event.locals.user) {
+	if (isPrivate && !event.locals.user) {
 		redirect(303, '/auth/login');
 	}
 
