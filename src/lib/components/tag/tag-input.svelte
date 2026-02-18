@@ -20,7 +20,6 @@
 	};
 
 	let { label, tags = $bindable([]), onselect, onremove }: Props = $props();
-	console.log(tags);
 	const allTags = getTags();
 
 	// Filter out already-added tags
