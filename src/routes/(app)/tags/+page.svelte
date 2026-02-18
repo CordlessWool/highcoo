@@ -1,77 +1,68 @@
 <script lang="ts">
 	import * as Layout from '$lib/components/layout';
-	import * as Sidebar from '$lib/components/ui/sidebar';
 	import * as Tag from '$lib/components/tag';
+	import * as ButtonGroup from '$lib/components/ui/button-group';
 	import { getTags } from '$lib/components/tag/tags.remote';
-	import { Plus } from '@lucide/svelte';
+	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-
-	const tags = getTags();
+	import { Plus } from '@lucide/svelte';
+	import type { Tag as TagType } from '$lib/logic/tag';
 
 	let search = $state('');
-	let selectedId = $state<string | null>(null);
+	let expandedId = $state<string | null>(null);
 	let creating = $state(false);
 
-	const filtered = $derived(
-		(tags.current ?? []).filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
-	);
-
-	const selectedTag = $derived((tags.current ?? []).find((t) => t.id === selectedId) ?? null);
+	const tags = $derived(getTags({ search: search || undefined }));
+	const filtered = $derived(tags.current ?? []);
 
 	const handleCreate = () => {
-		selectedId = null;
+		expandedId = null;
 		creating = true;
 	};
 
-	const handleCreated = (tag: { id: string }) => {
-		selectedId = tag.id;
+	const handleCreated = (tag: TagType) => {
 		creating = false;
+		// switch to view, not edit
 	};
 
 	const handleCancel = () => {
 		creating = false;
 	};
+
+	const handleEdit = (id: string) => {
+		expandedId = id;
+		creating = false;
+	};
+
+	const handleClose = () => {
+		expandedId = null;
+	};
 </script>
 
-<Sidebar.Provider>
-	<Sidebar.Root variant="inset">
-		<Sidebar.Header class="flex flex-col gap-3">
-			<Layout.NavHeader />
-			<Button variant="outline" class="w-full" onclick={handleCreate}>
+<main class="flex min-h-screen w-full flex-col gap-2">
+	<Layout.BaseBar>
+		<ButtonGroup.Root>
+			<Button variant="outline" size="sm" onclick={handleCreate}>
 				<Plus class="h-4 w-4" />
 				Create Tag
 			</Button>
-			<Sidebar.Input placeholder="Search tags..." bind:value={search} />
-		</Sidebar.Header>
-		<Sidebar.Content>
-			<Sidebar.Group>
-				<Sidebar.GroupContent>
-					<Sidebar.Menu>
-						{#each filtered as tag (tag.id)}
-							<Sidebar.MenuItem>
-								<Sidebar.MenuButton
-									isActive={!creating && tag.id === selectedId}
-									onclick={() => {
-										selectedId = tag.id;
-										creating = false;
-									}}
-								>
-									{tag.name}
-								</Sidebar.MenuButton>
-							</Sidebar.MenuItem>
-						{/each}
-					</Sidebar.Menu>
-				</Sidebar.GroupContent>
-			</Sidebar.Group>
-		</Sidebar.Content>
-	</Sidebar.Root>
-	<Sidebar.Inset class="p-6">
+		</ButtonGroup.Root>
+		<Input placeholder="Search tags..." bind:value={search} class="max-w-xs" />
+	</Layout.BaseBar>
+
+	<div
+		class="grid auto-rows-[10rem] grid-cols-1 gap-4 p-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+	>
 		{#if creating}
-			<Tag.CreateForm oncreate={handleCreated} oncancel={handleCancel} />
-		{:else if selectedTag}
-			<Tag.Detail tag={selectedTag} />
-		{:else}
-			<p class="text-muted-foreground">Select a tag to edit</p>
+			<Tag.CreateCard oncreate={handleCreated} oncancel={handleCancel} />
 		{/if}
-	</Sidebar.Inset>
-</Sidebar.Provider>
+
+		{#each filtered as tag (tag.id)}
+			{#if tag.id === expandedId}
+				<Tag.EditCard {tag} onclose={handleClose} />
+			{:else}
+				<Tag.ViewCard {tag} onclick={() => handleEdit(tag.id)} />
+			{/if}
+		{/each}
+	</div>
+</main>

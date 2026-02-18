@@ -3,7 +3,14 @@ import { error } from '@sveltejs/kit';
 import { query, command } from '$app/server';
 import { tagRepository, tagContentRepository } from '$lib/server/db/repositories';
 import { UniqueConstraintError } from '$lib/server/db/errors';
-import { NewTag, NewTagContent, type Tag, type TagContent } from '$lib/logic/tag';
+import {
+	TagFilter,
+	NewTag,
+	NewTagContent,
+	type Tag,
+	type TagWithStatus,
+	type TagContent
+} from '$lib/logic/tag';
 
 const PartialTag = v.object({
 	id: v.string(),
@@ -19,8 +26,8 @@ const PartialTagContent = v.object({
 	description: v.optional(v.nullable(v.string()))
 });
 
-export const getTags = query(async (): Promise<Tag[]> => {
-	return tagRepository.findAll();
+export const getTags = query(TagFilter, async (filter): Promise<TagWithStatus[]> => {
+	return tagRepository.findAll(filter);
 });
 
 export const createTag = command(NewTag, async (input): Promise<Tag> => {
@@ -41,6 +48,7 @@ export const getTagContent = query(v.string(), async (tagId): Promise<TagContent
 export const createTagContent = command(NewTagContent, async (input): Promise<TagContent> => {
 	try {
 		const content = await tagContentRepository.create(input);
+		await getTags().refresh();
 		return content;
 	} catch (err: unknown) {
 		if (err instanceof UniqueConstraintError) error(409, 'Slug is already taken');
@@ -61,4 +69,5 @@ export const patchTagContent = command(PartialTagContent, async ({ id, tagId, ..
 
 export const publishTagContent = command(v.string(), async (tagId) => {
 	await tagContentRepository.publish(tagId);
+	await getTags().refresh();
 });

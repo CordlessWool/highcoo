@@ -1,8 +1,8 @@
-import { eq } from 'drizzle-orm';
+import { eq, ilike, sql } from 'drizzle-orm';
 import type { TagRepository } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
-import type { Tag, NewTag } from '$lib/logic/tag';
+import type { Tag, TagWithStatus, TagFilter, NewTag } from '$lib/logic/tag';
 
 export const createTagRepository = (db: typeof database): TagRepository => ({
 	async create(input: NewTag): Promise<Tag> {
@@ -16,8 +16,29 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 		return tag;
 	},
 
-	async findAll(): Promise<Tag[]> {
-		return db.select().from(table.tag);
+	async findAll(filter?: TagFilter): Promise<TagWithStatus[]> {
+		return db
+			.select({
+				id: table.tag.id,
+				name: table.tag.name,
+				color: table.tag.color,
+				hasDraft: sql<boolean>`EXISTS (
+					SELECT 1 FROM tag_content
+					WHERE tag_id = tag.id AND published_at IS NULL
+				)`,
+				isDirty: sql<boolean>`COALESCE((
+					SELECT dirty FROM tag_content
+					WHERE tag_id = tag.id AND published_at IS NULL
+					LIMIT 1
+				), false)`,
+				isPublished: sql<boolean>`EXISTS (
+					SELECT 1 FROM tag_content
+					WHERE tag_id = tag.id AND published_at IS NOT NULL
+				)`
+			})
+			.from(table.tag)
+			.$dynamic()
+			.where(filter?.search ? ilike(table.tag.name, `%${filter.search}%`) : undefined);
 	},
 
 	async findById(id: string): Promise<Tag | null> {

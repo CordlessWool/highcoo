@@ -1,6 +1,16 @@
 import type { File, Media, Settings, TagContent } from '../schema';
-import type { Tag, NewTag, NewTagContent } from '$lib/logic/tag';
-export type { File, Media, Settings, Tag, NewTag, TagContent, NewTagContent };
+import type { Tag, TagWithStatus, TagFilter, NewTag, NewTagContent } from '$lib/logic/tag';
+export type {
+	File,
+	Media,
+	Settings,
+	Tag,
+	TagWithStatus,
+	TagFilter,
+	NewTag,
+	TagContent,
+	NewTagContent
+};
 export type NewFile = File;
 export type NewMedia = Omit<Media, 'id' | 'dirty' | 'publishedAt' | 'updatedAt' | 'deletedAt'>;
 
@@ -40,7 +50,7 @@ export interface MediaRepository {
 
 export interface TagRepository {
 	create(input: NewTag): Promise<Tag>;
-	findAll(): Promise<Tag[]>;
+	findAll(filter?: TagFilter): Promise<TagWithStatus[]>;
 	findById(id: string): Promise<Tag | null>;
 	patch(id: string, data: Partial<Omit<Tag, 'id'>>): Promise<void>;
 	delete(id: string): Promise<void>;
