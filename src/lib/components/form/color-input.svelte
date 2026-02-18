@@ -5,7 +5,7 @@
 
 	type Props = {
 		value?: string;
-		onsave: (value: string) => Promise<void>;
+		onsave?: (value: string) => Promise<void>;
 		delay?: number;
 	};
 
@@ -28,7 +28,7 @@
 		'#78716c'
 	];
 
-	let { value = '', onsave, delay = 500 }: Props = $props();
+	let { value = $bindable(''), onsave, delay = 500 }: Props = $props();
 
 	let hex = $state(value);
 	let status = $state(SaveStatus.Idle);
@@ -41,6 +41,8 @@
 	});
 
 	const save = (val: string) => {
+		value = val;
+		if (!onsave) return;
 		clearTimeout(timer);
 		timer = setTimeout(async () => {
 			status = SaveStatus.Saving;
