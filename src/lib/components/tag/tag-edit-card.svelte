@@ -12,13 +12,13 @@
 
 	let { tag, onclose }: Props = $props();
 
-	const hasContent = tag.hasDraft || tag.isPublished;
-	const cardClass = hasContent
-		? 'col-span-1 row-span-5 sm:col-span-2'
-		: 'col-span-1 row-span-3 sm:col-span-2';
+	const getCardClass = (tag: TagWithStatus) =>
+		tag.hasDraft || tag.isPublished
+			? 'col-span-1 row-span-5 sm:col-span-2'
+			: 'col-span-1 row-span-3 sm:col-span-2';
 </script>
 
-<Card.Root class={cardClass}>
+<Card.Root class={getCardClass(tag)}>
 	<Card.Header class="flex flex-row items-center justify-between">
 		<Card.Title class="text-base">{tag.name}</Card.Title>
 		<Button variant="ghost" size="icon-xs" onclick={onclose} aria-label="Close">

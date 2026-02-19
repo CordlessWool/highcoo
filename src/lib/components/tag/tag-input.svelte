@@ -20,22 +20,25 @@
 	};
 
 	let { label, tags = $bindable([]), onselect, onremove }: Props = $props();
-	const allTags = getTags();
 
-	// Filter out already-added tags
-	const availableOptions = $derived(
-		(allTags.current ?? [])
-			.filter((t) => !tags.some((tag) => tag.label === t.name))
-			.map((t) => t.name)
-	);
+	const initialTags = await getTags({ pagination: { limit: 50 } });
+	let allTags = $state(initialTags.items);
 
-	const handleSelect = async (label: string) => {
-		const tag = (allTags.current ?? []).find((t) => t.name === label);
-		if (tag) {
-			const item = { id: tag.id, label: tag.name };
-			await onselect?.(item);
-			tags = [...tags, item];
-		}
+	const handleSearch = async (search: string) => {
+		const result = await getTags({
+			filter: search ? { search } : undefined,
+			pagination: { limit: 50 }
+		});
+		allTags = result.items;
+		return allTags
+			.filter((t) => !tags.some((tag) => tag.id === t.id))
+			.map((t) => ({ id: t.id, label: t.name }));
+	};
+
+	const handleSelect = async (option: { id: string; label: string }) => {
+		const item = { id: option.id, label: option.label };
+		await onselect?.(item);
+		tags = [...tags, item];
 	};
 
 	const handleCreate = async (label: string) => {
@@ -63,9 +66,12 @@
 			<InputGroup.Label>{label} ({tags.length})</InputGroup.Label>
 			<TagInput.Options
 				class="ms-auto"
-				options={availableOptions}
+				options={allTags
+					.filter((t) => !tags.some((tag) => tag.id === t.id))
+					.map((t) => ({ id: t.id, label: t.name }))}
 				onadd={handleSelect}
 				oncreate={handleCreate}
+				onsearch={handleSearch}
 			/>
 		</InputGroup.Addon>
 	{/if}

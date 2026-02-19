@@ -4,28 +4,34 @@
 	import * as InputGroup from '$lib/components/ui/input-group';
 	import { Plus } from '@lucide/svelte';
 
+	type Option = { id: string; label: string };
+
 	type Props = {
 		class?: string;
-		options?: string[];
-		onadd?: (tag: string) => void;
+		options?: Option[];
+		onadd?: (option: Option) => void;
 		oncreate?: (name: string) => void;
+		onsearch?: (search: string) => Option[] | Promise<Option[]>;
 	};
 
-	let { class: className, options = [], onadd, oncreate }: Props = $props();
+	let { class: className, options = [], onadd, oncreate, onsearch }: Props = $props();
 
 	let value = $state('');
 
-	// Filter by search value
-	const tags = $derived(
-		value.trim()
-			? options.filter((tag) => tag.toLowerCase().includes(value.toLowerCase().trim()))
-			: options
+	const tagsPromise = $derived.by(async () => {
+		const trimmed = value.trim();
+		if (onsearch) return await onsearch(trimmed);
+		if (!trimmed) return options;
+		return options.filter((o) => o.label.toLowerCase().includes(trimmed.toLowerCase()));
+	});
+
+	const tags = $derived(await tagsPromise);
+	const exactMatch = $derived(
+		tags.some((o) => o.label.toLowerCase() === value.trim().toLowerCase())
 	);
 
-	const exactMatch = $derived(tags.some((tag) => tag.toLowerCase() === value.trim().toLowerCase()));
-
-	const handleSelect = (tag: string) => {
-		onadd?.(tag);
+	const handleSelect = (option: Option) => {
+		onadd?.(option);
 		value = '';
 	};
 
@@ -47,9 +53,9 @@
 			<Command.List>
 				<Command.Empty>No tags found.</Command.Empty>
 				<Command.Group>
-					{#each tags as tag (tag)}
-						<Command.Item value={tag} onSelect={() => handleSelect(tag)}>
-							{tag}
+					{#each tags as option (option.id)}
+						<Command.Item value={option.id} onSelect={() => handleSelect(option)}>
+							{option.label}
 						</Command.Item>
 					{/each}
 					{#if value.trim() && !exactMatch}
