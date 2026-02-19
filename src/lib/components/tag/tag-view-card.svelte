@@ -21,14 +21,14 @@
 				title="Unpublished changes"
 			></span>
 		{/if}
-		<Card.Header class="flex flex-col gap-3">
+		<Card.Content class="flex flex-col gap-3">
 			<Card.Title class="text-base">{tag.name}</Card.Title>
 			<div class="flex items-center gap-1.5">
 				<span class="size-3 rounded-full border" style:background-color={tag.color ?? '#ffffff'}
 				></span>
 				<span class="font-mono text-xs text-muted-foreground">{tag.color ?? '#ffffff'}</span>
 			</div>
-		</Card.Header>
+		</Card.Content>
 		<Card.Footer>
 			<div class="flex flex-wrap items-center gap-2">
 				{#if hasContent}
