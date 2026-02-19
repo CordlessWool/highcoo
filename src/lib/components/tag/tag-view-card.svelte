@@ -10,7 +10,7 @@
 
 	let { tag, onclick }: Props = $props();
 
-	const hasContent = $derived(tag.hasDraft || tag.isPublished);
+	const hasContent = tag.hasDraft || tag.isPublished;
 </script>
 
 <button class="row-span-1 grid h-full w-full items-stretch text-left" {onclick}>
@@ -34,7 +34,6 @@
 				{#if hasContent}
 					<Badge variant="outline" class="text-xs">Content</Badge>
 				{/if}
-
 				{#if tag.isPublished}
 					<Badge variant="default" class="text-xs">Published</Badge>
 				{/if}

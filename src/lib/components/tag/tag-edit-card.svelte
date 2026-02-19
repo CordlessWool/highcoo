@@ -12,10 +12,10 @@
 
 	let { tag, onclose }: Props = $props();
 
-	const hasContent = $derived(tag.hasDraft || tag.isPublished);
-	const cardClass = $derived(
-		hasContent ? 'col-span-1 row-span-5 sm:col-span-2' : 'col-span-1 row-span-3 sm:col-span-2'
-	);
+	const hasContent = tag.hasDraft || tag.isPublished;
+	const cardClass = hasContent
+		? 'col-span-1 row-span-5 sm:col-span-2'
+		: 'col-span-1 row-span-3 sm:col-span-2';
 </script>
 
 <Card.Root class={cardClass}>

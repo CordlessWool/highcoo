@@ -22,6 +22,15 @@
 			{ rootMargin: `${offset}px` }
 		);
 		observer.observe(sentinel);
+
+		// After each load completes, re-check if sentinel is still visible
+		$effect(() => {
+			if (!loading) {
+				observer.unobserve(sentinel);
+				observer.observe(sentinel);
+			}
+		});
+
 		return () => observer.disconnect();
 	});
 </script>

@@ -15,13 +15,19 @@ export type NewFile = File;
 export type NewMedia = Omit<Media, 'id' | 'dirty' | 'publishedAt' | 'updatedAt' | 'deletedAt'>;
 
 export type Pagination = {
-	limit: number;
+	limit?: number;
+	orderBy?: string;
 	cursor?: string | null;
 };
 
 export type PaginatedResult<T> = {
 	items: T[];
 	pagination: Pagination;
+};
+
+export type CursorPayload = {
+	value: string;
+	id: string;
 };
 
 export interface FileRepository {
@@ -50,7 +56,10 @@ export interface MediaRepository {
 
 export interface TagRepository {
 	create(input: NewTag): Promise<Tag>;
-	findAll(filter?: TagFilter): Promise<TagWithStatus[]>;
+	findAll(filter?: TagFilter, pagination?: Pagination): Promise<PaginatedResult<Tag>>;
+	findAllIds(filter?: TagFilter, pagination?: Pagination): Promise<PaginatedResult<string>>;
+	findCurrentIds(filter?: TagFilter, pagination?: Pagination): Promise<string[]>;
+	findWithStatusByIds(ids: string[]): Promise<TagWithStatus[]>;
 	findById(id: string): Promise<Tag | null>;
 	patch(id: string, data: Partial<Omit<Tag, 'id'>>): Promise<void>;
 	delete(id: string): Promise<void>;

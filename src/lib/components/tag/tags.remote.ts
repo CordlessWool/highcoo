@@ -3,6 +3,7 @@ import { error } from '@sveltejs/kit';
 import { query, command } from '$app/server';
 import { tagRepository, tagContentRepository } from '$lib/server/db/repositories';
 import { UniqueConstraintError } from '$lib/server/db/errors';
+import type { PaginatedResult } from '$lib/server/db/repositories/types';
 import {
 	TagFilter,
 	NewTag,
@@ -11,6 +12,17 @@ import {
 	type TagWithStatus,
 	type TagContent
 } from '$lib/logic/tag';
+
+const GetTagsInput = v.object({
+	filter: v.optional(TagFilter),
+	pagination: v.optional(
+		v.object({
+			cursor: v.optional(v.nullable(v.string())),
+			limit: v.optional(v.number()),
+			orderBy: v.optional(v.string())
+		})
+	)
+});
 
 const PartialTag = v.object({
 	id: v.string(),
@@ -26,19 +38,62 @@ const PartialTagContent = v.object({
 	description: v.optional(v.nullable(v.string()))
 });
 
-export const getTags = query(TagFilter, async (filter): Promise<TagWithStatus[]> => {
-	return tagRepository.findAll(filter);
+export const getTags = query(
+	GetTagsInput,
+	async ({ filter, pagination }): Promise<PaginatedResult<Tag>> => {
+		return tagRepository.findAll(filter, {
+			limit: pagination?.limit ?? 24,
+			cursor: pagination?.cursor,
+			orderBy: pagination?.orderBy
+		});
+	}
+);
+
+export const getTagIds = query(
+	GetTagsInput,
+	async ({ filter, pagination }): Promise<PaginatedResult<string>> => {
+		return tagRepository.findAllIds(filter, {
+			limit: pagination?.limit ?? 24,
+			cursor: pagination?.cursor,
+			orderBy: pagination?.orderBy
+		});
+	}
+);
+
+const GetIdsBeforeInput = v.object({
+	filter: v.optional(TagFilter),
+	pagination: v.optional(
+		v.object({
+			cursor: v.optional(v.string()),
+			orderBy: v.optional(v.string())
+		})
+	)
+});
+
+export const getCurrentIds = query(
+	GetIdsBeforeInput,
+	async ({ filter, pagination }): Promise<string[]> => {
+		return tagRepository.findCurrentIds(filter, {
+			cursor: pagination?.cursor,
+			orderBy: pagination?.orderBy
+		});
+	}
+);
+
+export const getTagWithStatus = query.batch(v.string(), async (ids: string[]) => {
+	const tags = await tagRepository.findWithStatusByIds(ids);
+	const map = new Map(tags.map((t) => [t.id, t]));
+	return (id: string): TagWithStatus | null => map.get(id) ?? null;
 });
 
 export const createTag = command(NewTag, async (input): Promise<Tag> => {
 	const tag = await tagRepository.create(input);
-	await getTags().refresh();
 	return tag;
 });
 
 export const patchTag = command(PartialTag, async ({ id, ...data }) => {
 	await tagRepository.patch(id, data);
-	await getTags().refresh();
+	await getTagWithStatus(id).refresh();
 });
 
 export const getTagContent = query(v.string(), async (tagId): Promise<TagContent | null> => {
@@ -48,7 +103,7 @@ export const getTagContent = query(v.string(), async (tagId): Promise<TagContent
 export const createTagContent = command(NewTagContent, async (input): Promise<TagContent> => {
 	try {
 		const content = await tagContentRepository.create(input);
-		await getTags().refresh();
+		await getTagWithStatus(input.tagId).refresh();
 		return content;
 	} catch (err: unknown) {
 		if (err instanceof UniqueConstraintError) error(409, 'Slug is already taken');
@@ -61,6 +116,8 @@ export const patchTagContent = command(PartialTagContent, async ({ id, tagId, ..
 		await tagContentRepository.patch(id, data);
 		const cached = await getTagContent(tagId);
 		if (cached) getTagContent(tagId).set({ ...cached, ...data, dirty: true });
+		const cachedStatus = await getTagWithStatus(tagId);
+		if (cachedStatus) getTagWithStatus(tagId).set({ ...cachedStatus, isDirty: true });
 	} catch (err: unknown) {
 		if (err instanceof UniqueConstraintError) error(409, 'Slug is already taken');
 		throw err;
@@ -69,5 +126,5 @@ export const patchTagContent = command(PartialTagContent, async ({ id, tagId, ..
 
 export const publishTagContent = command(v.string(), async (tagId) => {
 	await tagContentRepository.publish(tagId);
-	await getTags().refresh();
+	await getTagWithStatus(tagId).refresh();
 });
