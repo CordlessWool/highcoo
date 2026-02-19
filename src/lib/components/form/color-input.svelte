@@ -30,15 +30,10 @@
 
 	let { value = $bindable(''), onsave, delay = 500 }: Props = $props();
 
-	let hex = $state(value);
 	let status = $state(SaveStatus.Idle);
 	let errorMessage = $state('');
 	let open = $state(false);
 	let timer: ReturnType<typeof setTimeout>;
-
-	$effect(() => {
-		hex = value;
-	});
 
 	const save = (val: string) => {
 		value = val;
@@ -58,14 +53,13 @@
 	};
 
 	const selectColor = (color: string) => {
-		hex = color;
 		open = false;
 		save(color);
 	};
 
 	const handleInput = (e: Event) => {
 		const val = (e.target as HTMLInputElement).value;
-		hex = val;
+		value = val;
 		if (status === SaveStatus.Error) {
 			status = SaveStatus.Idle;
 			errorMessage = '';
@@ -88,7 +82,9 @@
 							size="icon-xs"
 							aria-label="Pick color"
 						>
-							<span class="size-4 rounded-full border" style:background-color={hex || 'transparent'}
+							<span
+								class="size-4 rounded-full border"
+								style:background-color={value || 'transparent'}
 							></span>
 						</InputGroup.Button>
 					{/snippet}
@@ -98,9 +94,9 @@
 						{#each palette as color (color)}
 							<button
 								class="size-6 rounded-full border transition-transform hover:scale-110"
-								class:ring-2={hex === color}
-								class:ring-primary={hex === color}
-								class:ring-offset-1={hex === color}
+								class:ring-2={value === color}
+								class:ring-primary={value === color}
+								class:ring-offset-1={value === color}
 								style:background-color={color}
 								aria-label={color}
 								onclick={() => selectColor(color)}
@@ -110,7 +106,7 @@
 				</Popover.Content>
 			</Popover.Root>
 		</InputGroup.Addon>
-		<InputGroup.Input value={hex} oninput={handleInput} placeholder="#000000" />
+		<InputGroup.Input {value} oninput={handleInput} placeholder="#000000" />
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
 		<p class="text-xs text-destructive">{errorMessage}</p>

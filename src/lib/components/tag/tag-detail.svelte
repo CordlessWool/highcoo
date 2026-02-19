@@ -19,8 +19,6 @@
 
 	let { tag }: Props = $props();
 
-	const content = $derived(await getTagContent(tag.id));
-
 	const handleCreateContent = async () => {
 		await createTagContent({
 			tagId: tag.id,
@@ -57,55 +55,57 @@
 
 	<Field.Separator />
 
-	<Field.Set>
-		<div class="flex items-center justify-between">
-			<div>
-				<Field.Legend>Public Content</Field.Legend>
-				<Field.Description>Visible on the public API after publishing</Field.Description>
+	{#await getTagContent(tag.id) then content}
+		<Field.Set>
+			<div class="flex items-center justify-between">
+				<div>
+					<Field.Legend>Public Content</Field.Legend>
+					<Field.Description>Visible on the public API after publishing</Field.Description>
+				</div>
+				{#if content?.dirty}
+					<Button variant="outline" size="sm" onclick={handlePublish}>
+						<Send class="h-4 w-4" />
+						Publish
+					</Button>
+				{/if}
 			</div>
-			{#if content?.dirty}
-				<Button variant="outline" size="sm" onclick={handlePublish}>
-					<Send class="h-4 w-4" />
-					Publish
-				</Button>
-			{/if}
-		</div>
 
-		<Field.Group>
-			{#if content}
-				<Form.Input
-					label="Title"
-					value={content.title ?? ''}
-					onsave={async (title) => {
-						await patchTagContent({ id: content.id, tagId: tag.id, title: title || null });
-					}}
-				/>
+			<Field.Group>
+				{#if content}
+					<Form.Input
+						label="Title"
+						value={content.title ?? ''}
+						onsave={async (title) => {
+							await patchTagContent({ id: content.id, tagId: tag.id, title: title || null });
+						}}
+					/>
 
-				<Form.Input
-					label="Slug"
-					value={content.slug}
-					onsave={async (slug) => {
-						await patchTagContent({ id: content.id, tagId: tag.id, slug });
-					}}
-				/>
+					<Form.Input
+						label="Slug"
+						value={content.slug}
+						onsave={async (slug) => {
+							await patchTagContent({ id: content.id, tagId: tag.id, slug });
+						}}
+					/>
 
-				<Form.Textarea
-					label="Description"
-					value={content.description ?? ''}
-					onsave={async (description) => {
-						await patchTagContent({
-							id: content.id,
-							tagId: tag.id,
-							description: description || null
-						});
-					}}
-				/>
-			{:else}
-				<Button variant="outline" size="sm" onclick={handleCreateContent}>
-					<Plus class="h-4 w-4" />
-					Add content
-				</Button>
-			{/if}
-		</Field.Group>
-	</Field.Set>
+					<Form.Textarea
+						label="Description"
+						value={content.description ?? ''}
+						onsave={async (description) => {
+							await patchTagContent({
+								id: content.id,
+								tagId: tag.id,
+								description: description || null
+							});
+						}}
+					/>
+				{:else}
+					<Button variant="outline" size="sm" onclick={handleCreateContent}>
+						<Plus class="h-4 w-4" />
+						Add content
+					</Button>
+				{/if}
+			</Field.Group>
+		</Field.Set>
+	{/await}
 </Field.Group>

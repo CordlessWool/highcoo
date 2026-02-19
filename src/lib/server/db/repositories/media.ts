@@ -60,7 +60,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async findAll(pagination: Pagination) {
-		const { limit, cursor } = pagination;
+		const { limit = 20, cursor } = pagination;
 
 		const whereClause = cursor
 			? and(isDraft, isNotDeleted, lt(table.media.id, cursor))
