@@ -17,17 +17,21 @@
 	let { class: className, options = [], onadd, oncreate, onsearch }: Props = $props();
 
 	let value = $state('');
+	let searchResult = $state<Option[]>([]);
 
-	const tagsPromise = $derived.by(async () => {
+	$effect(() => {
 		const trimmed = value.trim();
-		if (onsearch) return await onsearch(trimmed);
-		if (!trimmed) return options;
-		return options.filter((o) => o.label.toLowerCase().includes(trimmed.toLowerCase()));
+		if (onsearch) {
+			Promise.resolve(onsearch(trimmed)).then((r) => (searchResult = r));
+		} else {
+			searchResult = trimmed
+				? options.filter((o) => o.label.toLowerCase().includes(trimmed.toLowerCase()))
+				: options;
+		}
 	});
 
-	const tags = $derived(await tagsPromise);
 	const exactMatch = $derived(
-		tags.some((o) => o.label.toLowerCase() === value.trim().toLowerCase())
+		searchResult.some((o) => o.label.toLowerCase() === value.trim().toLowerCase())
 	);
 
 	const handleSelect = (option: Option) => {
@@ -43,7 +47,7 @@
 
 <Popover.Root>
 	<Popover.Trigger class={className}>
-		<InputGroup.Button variant="default">
+		<InputGroup.Button variant="ghost" size="icon-xs">
 			<Plus />
 		</InputGroup.Button>
 	</Popover.Trigger>
@@ -53,7 +57,7 @@
 			<Command.List>
 				<Command.Empty>No tags found.</Command.Empty>
 				<Command.Group>
-					{#each tags as option (option.id)}
+					{#each searchResult as option (option.id)}
 						<Command.Item value={option.id} onSelect={() => handleSelect(option)}>
 							{option.label}
 						</Command.Item>

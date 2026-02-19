@@ -4,11 +4,18 @@
 
 	type Props = {
 		children: Snippet;
+		oncomplete?: () => void;
 	};
 
-	let { children }: Props = $props();
+	let { children, oncomplete }: Props = $props();
 
-	initUploadContext();
+	const ctx = initUploadContext();
+
+	$effect(() => {
+		if (ctx.total > 0 && ctx.completed === ctx.total && ctx.errors === 0) {
+			oncomplete?.();
+		}
+	});
 </script>
 
 {@render children()}

@@ -12,16 +12,11 @@ import {
 	type TagWithStatus,
 	type TagContent
 } from '$lib/logic/tag';
+import { Pagination } from '$lib/logic/pagination';
 
 const GetTagsInput = v.object({
 	filter: v.optional(TagFilter),
-	pagination: v.optional(
-		v.object({
-			cursor: v.optional(v.nullable(v.string())),
-			limit: v.optional(v.number()),
-			orderBy: v.optional(v.string())
-		})
-	)
+	pagination: v.optional(Pagination)
 });
 
 const PartialTag = v.object({
@@ -62,12 +57,7 @@ export const getTagIds = query(
 
 const GetIdsBeforeInput = v.object({
 	filter: v.optional(TagFilter),
-	pagination: v.optional(
-		v.object({
-			cursor: v.optional(v.string()),
-			orderBy: v.optional(v.string())
-		})
-	)
+	pagination: v.optional(Pagination)
 });
 
 export const getCurrentIds = query(

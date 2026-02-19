@@ -1,8 +1,10 @@
 import type { File, Media, Settings, TagContent } from '../schema';
 import type { Tag, TagWithStatus, TagFilter, NewTag, NewTagContent } from '$lib/logic/tag';
+import type { MediaFilter } from '$lib/logic/media';
 export type {
 	File,
 	Media,
+	MediaFilter,
 	Settings,
 	Tag,
 	TagWithStatus,
@@ -40,9 +42,12 @@ export interface FileRepository {
 export interface MediaRepository {
 	insert(data: NewMedia): Promise<string>;
 	findById(id: string): Promise<Media | null>;
+	findByIds(ids: string[]): Promise<Media[]>;
 	findBySlug(slug: string): Promise<Media | null>;
 	findFileBySlug(slug: string): Promise<File | null>;
 	findAll(pagination: Pagination): Promise<PaginatedResult<Media>>;
+	findCurrentIds(filter?: MediaFilter, pagination?: Pagination): Promise<string[]>;
+	findAllIds(filter?: MediaFilter, pagination?: Pagination): Promise<PaginatedResult<string>>;
 	softDelete(id: string): Promise<void>;
 	restore(id: string): Promise<void>;
 	patch(id: string, data: Partial<Omit<Media, 'id' | 'fileHash'>>): Promise<void>;

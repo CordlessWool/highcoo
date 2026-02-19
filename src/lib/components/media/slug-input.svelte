@@ -1,10 +1,10 @@
 <script lang="ts">
 	import * as Form from '$lib/components/form';
 	import { generateSlug } from '$lib/logic/slug';
-	import type { MediaState } from './types';
+	import type { Media } from '$lib/server/db/repositories/types';
 
 	type Props = {
-		selected: MediaState[];
+		selected: Media[];
 		onsave: (slugs: { id: string; slug: string }[]) => Promise<void>;
 	};
 
@@ -12,7 +12,7 @@
 
 	const isSingle = $derived(selected.length === 1);
 
-	const allSame = $derived(selected.every((s) => s.media.slug === selected[0].media.slug));
+	const allSame = $derived(selected.every((s) => s.slug === selected[0].slug));
 
 	const sanitizeSlugInput = (raw: string): string => {
 		return raw
@@ -35,16 +35,16 @@
 		const slug = generateSlug(val);
 		if (!slug) return;
 		if (isSingle) {
-			await onsave([{ id: selected[0].media.id, slug }]);
+			await onsave([{ id: selected[0].id, slug }]);
 		} else {
-			await onsave(selected.map((s, i) => ({ id: s.media.id, slug: `${slug}-${i + 1}` })));
+			await onsave(selected.map((s, i) => ({ id: s.id, slug: `${slug}-${i + 1}` })));
 		}
 	};
 </script>
 
 <Form.Input
 	label="Slug"
-	value={allSame ? selected[0].media.slug : ''}
+	value={allSame ? selected[0].slug : ''}
 	placeholder={!isSingle && !allSame ? 'Different values' : 'Slug'}
 	oninput={handleInput}
 	{info}

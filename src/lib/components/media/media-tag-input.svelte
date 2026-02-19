@@ -10,18 +10,19 @@
 
 	let { label, mediaIds }: Props = $props();
 
-	// Compute common tags (tags that ALL selected media have)
-	const tags = $derived.by(async (): Promise<TagInputItem[]> => {
-		const [firstId, ...restIds] = mediaIds;
-		const tagsOfFirst = await getTagsForMedia(firstId);
-
-		if (restIds.length === 0) return tagsOfFirst.map((t) => ({ id: t.id, label: t.name }));
-		const commonTags = await restIds.reduce(async (tags, id) => {
-			const tagsOfCurrent = await getTagsForMedia(id);
-			return (await tags).filter((tag) => tagsOfCurrent.some((t) => t.id === tag.id));
-		}, Promise.resolve(tagsOfFirst));
-		return commonTags.map((t) => ({ id: t.id, label: t.name }));
-	});
+	// Compute common tags — reactive but no {#await} in template
+	const tags = $derived(
+		await (async (): Promise<TagInputItem[]> => {
+			const [firstId, ...restIds] = mediaIds;
+			const tagsOfFirst = await getTagsForMedia(firstId);
+			if (restIds.length === 0) return tagsOfFirst.map((t) => ({ id: t.id, label: t.name }));
+			const commonTags = await restIds.reduce(async (tags, id) => {
+				const tagsOfCurrent = await getTagsForMedia(id);
+				return (await tags).filter((tag) => tagsOfCurrent.some((t) => t.id === tag.id));
+			}, Promise.resolve(tagsOfFirst));
+			return commonTags.map((t) => ({ id: t.id, label: t.name }));
+		})()
+	);
 
 	const handleSelect = async (item: TagInputItem) => {
 		try {
@@ -40,6 +41,4 @@
 	};
 </script>
 
-{#await tags then tags}
-	<TagInput {label} {tags} onselect={handleSelect} onremove={handleRemove} />
-{/await}
+<TagInput {label} {tags} onselect={handleSelect} onremove={handleRemove} />

@@ -1,14 +1,47 @@
-import { eq, lt, desc, isNull, isNotNull, and, inArray, notInArray } from 'drizzle-orm';
+import { eq, lt, gte, desc, isNull, isNotNull, and, inArray, notInArray } from 'drizzle-orm';
+import type { PgSelect } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
-import type { MediaRepository, NewMedia, Pagination } from './types';
+import type { MediaRepository, NewMedia, Pagination, PaginatedResult } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import { UniqueConstraintError, isUniqueViolation } from '../errors';
 import type { Tag } from '$lib/logic/tag';
+import type { MediaFilter } from '$lib/logic/media';
 
 const isDraft = isNull(table.media.publishedAt);
 const isPublished = isNotNull(table.media.publishedAt);
 const isNotDeleted = isNull(table.media.deletedAt);
+
+// --- Dynamic query modifiers ---
+
+function filterCond(_filter?: MediaFilter) {
+	// search filter reserved for future use
+	return and(isDraft, isNotDeleted);
+}
+
+function applyPagination<T extends PgSelect>(
+	query: T,
+	filter?: MediaFilter,
+	pagination?: Pagination
+) {
+	const limit = pagination?.limit ?? 24;
+	const cursor = pagination?.cursor;
+	const cursorCond = cursor ? lt(table.media.id, cursor) : undefined;
+	return query
+		.where(and(filterCond(filter), cursorCond))
+		.orderBy(desc(table.media.id))
+		.limit(limit + 1);
+}
+
+function applyCurrentState<T extends PgSelect>(
+	query: T,
+	filter?: MediaFilter,
+	pagination?: Pagination
+) {
+	const cursor = pagination?.cursor;
+	const cursorCond = cursor ? gte(table.media.id, cursor) : undefined;
+	return query.where(and(filterCond(filter), cursorCond)).orderBy(desc(table.media.id));
+}
 
 export const createMediaRepository = (db: typeof database): MediaRepository => ({
 	async insert(data: NewMedia): Promise<string> {
@@ -57,6 +90,33 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 			.where(and(eq(table.media.slug, slug), isDraft, isNotDeleted))
 			.limit(1);
 		return result[0]?.file ?? null;
+	},
+
+	async findByIds(ids: string[]): Promise<table.Media[]> {
+		if (ids.length === 0) return [];
+		return db.select().from(table.media).where(inArray(table.media.id, ids));
+	},
+
+	async findCurrentIds(filter?: MediaFilter, pagination?: Pagination): Promise<string[]> {
+		const q = db.select({ id: table.media.id }).from(table.media).$dynamic();
+		const rows = await applyCurrentState(q, filter, pagination);
+		return rows.map((r) => r.id);
+	},
+
+	async findAllIds(
+		filter?: MediaFilter,
+		pagination?: Pagination
+	): Promise<PaginatedResult<string>> {
+		const limit = pagination?.limit ?? 24;
+		const q = db.select({ id: table.media.id }).from(table.media).$dynamic();
+		const rows = await applyPagination(q, filter, pagination);
+		const hasMore = rows.length > limit;
+		const page = hasMore ? rows.slice(0, limit) : rows;
+		const last = page[page.length - 1];
+		return {
+			items: page.map((r) => r.id),
+			pagination: { limit, cursor: hasMore && last ? last.id : null }
+		};
 	},
 
 	async findAll(pagination: Pagination) {

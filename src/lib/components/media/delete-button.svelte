@@ -3,10 +3,9 @@
 	import { Trash2 } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 	import { softDeleteMedia, restoreMedia } from './media.remote';
-	import type { MediaState } from './types';
 
 	type Props = {
-		selected: MediaState[];
+		selected: string[];
 		ondelete?: (ids: string[]) => void;
 		onrestore?: (ids: string[]) => void;
 	};
@@ -14,7 +13,7 @@
 	let { selected, ondelete, onrestore }: Props = $props();
 
 	const handleDelete = async () => {
-		const ids = selected.map((s) => s.media.id);
+		const ids = selected.slice();
 		const count = ids.length;
 
 		try {
@@ -42,7 +41,12 @@
 	};
 </script>
 
-<Button variant="destructive" onclick={handleDelete}>
+<Button
+	variant="outline"
+	size="sm"
+	onclick={handleDelete}
+	aria-label="Delete"
+	class="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+>
 	<Trash2 />
-	Delete ({selected.length})
 </Button>
