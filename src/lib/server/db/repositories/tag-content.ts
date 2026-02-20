@@ -1,10 +1,21 @@
-import { eq, and, isNull, isNotNull, ne, desc } from 'drizzle-orm';
+import { eq, and, asc, gt, lt, isNull, isNotNull, ne, or, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { TagContentRepository } from './types';
+import * as v from 'valibot';
+import type {
+	TagContentRepository,
+	Pagination,
+	PaginatedResult,
+	PublishedTag,
+	PublishedTagWithMedia
+} from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import type { TagContent, NewTagContent } from '$lib/logic/tag';
 import { UniqueConstraintError, isUniqueViolation } from '../errors';
+import { encodeCursor, decodeCursor } from '$lib/logic/pagination';
+
+const tagContentCursorSchema = v.object({ id: v.string(), value: v.string() });
+const mediaCursorSchema = v.object({ id: v.string() });
 
 const isDraft = isNull(table.tagContent.publishedAt);
 const isPublished = isNotNull(table.tagContent.publishedAt);
@@ -107,6 +118,70 @@ export const createTagContentRepository = (db: typeof database): TagContentRepos
 			.where(eq(table.tagContent.id, draft.id));
 	},
 
+	async findPublishedMediaByTagSlug(
+		slug: string,
+		pagination?: Pagination
+	): Promise<PublishedTagWithMedia | null> {
+		// Find the published tag content by slug
+		const [content] = await db
+			.select({
+				tagId: table.tagContent.tagId,
+				title: table.tagContent.title,
+				description: table.tagContent.description
+			})
+			.from(table.tagContent)
+			.where(and(eq(table.tagContent.slug, slug), isPublished))
+			.orderBy(desc(table.tagContent.publishedAt))
+			.limit(1);
+
+		if (!content) return null;
+
+		// Paginate published media linked to this tag
+		const limit = pagination?.limit ?? 24;
+		const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, mediaCursorSchema) : null;
+		const cursorCond = cursor ? lt(table.media.id, cursor.id) : undefined;
+
+		const rows = await db
+			.select({
+				id: table.media.id,
+				name: table.media.name,
+				slug: table.media.slug,
+				description: table.media.description
+			})
+			.from(table.mediaTag)
+			.innerJoin(table.media, eq(table.mediaTag.mediaId, table.media.id))
+			.where(
+				and(
+					eq(table.mediaTag.tagId, content.tagId),
+					isNotNull(table.media.publishedAt),
+					isNull(table.media.deletedAt),
+					cursorCond
+				)
+			)
+			.orderBy(desc(table.media.id))
+			.limit(limit + 1);
+
+		const hasMore = rows.length > limit;
+		const page = hasMore ? rows.slice(0, limit) : rows;
+		const last = page[page.length - 1];
+
+		return {
+			title: content.title,
+			description: content.description,
+			media: {
+				items: page.map((row) => ({
+					name: row.name,
+					slug: row.slug,
+					description: row.description
+				})),
+				pagination: {
+					limit,
+					cursor: hasMore && last ? encodeCursor({ id: last.id }) : null
+				}
+			}
+		};
+	},
+
 	async findPublishedBySlug(slug: string): Promise<TagContent | null> {
 		const [result] = await db
 			.select()
@@ -115,5 +190,45 @@ export const createTagContentRepository = (db: typeof database): TagContentRepos
 			.orderBy(desc(table.tagContent.publishedAt))
 			.limit(1);
 		return result ?? null;
+	},
+
+	async findAllPublished(pagination?: Pagination): Promise<PaginatedResult<PublishedTag>> {
+		const limit = pagination?.limit ?? 24;
+		const cursor = pagination?.cursor
+			? decodeCursor(pagination.cursor, tagContentCursorSchema)
+			: null;
+		const cursorCond = cursor
+			? or(
+					gt(table.tagContent.slug, cursor.value),
+					and(eq(table.tagContent.slug, cursor.value), gt(table.tagContent.id, cursor.id))
+				)
+			: undefined;
+
+		const rows = await db
+			.select({
+				id: table.tagContent.id,
+				slug: table.tagContent.slug,
+				title: table.tagContent.title,
+				description: table.tagContent.description
+			})
+			.from(table.tagContent)
+			.where(and(isPublished, cursorCond))
+			.orderBy(asc(table.tagContent.slug), asc(table.tagContent.id))
+			.limit(limit + 1);
+
+		const hasMore = rows.length > limit;
+		const page = hasMore ? rows.slice(0, limit) : rows;
+		const last = page[page.length - 1];
+		const nextCursor =
+			hasMore && last ? encodeCursor({ value: last.slug, id: last.id }) : null;
+
+		return {
+			items: page.map((row) => ({
+				slug: row.slug,
+				title: row.title,
+				description: row.description
+			})),
+			pagination: { limit, orderBy: 'slug', cursor: nextCursor }
+		};
 	}
 });

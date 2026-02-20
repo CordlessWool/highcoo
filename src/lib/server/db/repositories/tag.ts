@@ -1,23 +1,13 @@
 import { and, asc, eq, gt, ilike, inArray, lte, or, sql } from 'drizzle-orm';
 import type { PgSelect } from 'drizzle-orm/pg-core';
-import type { TagRepository, Pagination, PaginatedResult, CursorPayload } from './types';
+import * as v from 'valibot';
+import type { TagRepository, Pagination, PaginatedResult } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import type { Tag, TagWithStatus, TagFilter, NewTag } from '$lib/logic/tag';
+import { encodeCursor, decodeCursor } from '$lib/logic/pagination';
 
-// --- Cursor encoding ---
-
-function encodeCursor(payload: CursorPayload): string {
-	return Buffer.from(JSON.stringify(payload)).toString('base64');
-}
-
-function decodeCursor(cursor: string): CursorPayload | null {
-	try {
-		return JSON.parse(Buffer.from(cursor, 'base64').toString('utf8')) as CursorPayload;
-	} catch {
-		return null;
-	}
-}
+const tagCursorSchema = v.object({ id: v.string(), value: v.string() });
 
 // --- Dynamic query modifiers ---
 
@@ -32,11 +22,11 @@ function applyPagination<T extends PgSelect>(
 	pagination?: Pagination
 ) {
 	const limit = pagination?.limit ?? 24;
-	const cursorPayload = pagination?.cursor ? decodeCursor(pagination.cursor) : null;
-	const cursorCond = cursorPayload
+	const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, tagCursorSchema) : null;
+	const cursorCond = cursor
 		? or(
-				gt(table.tag.name, cursorPayload.value),
-				and(eq(table.tag.name, cursorPayload.value), gt(table.tag.id, cursorPayload.id))
+				gt(table.tag.name, cursor.value),
+				and(eq(table.tag.name, cursor.value), gt(table.tag.id, cursor.id))
 			)
 		: undefined;
 	return query
@@ -50,11 +40,11 @@ function applyCurrentState<T extends PgSelect>(
 	filter?: TagFilter,
 	pagination?: Pagination
 ) {
-	const cursorPayload = pagination?.cursor ? decodeCursor(pagination.cursor) : null;
-	const cursorCond = cursorPayload
+	const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, tagCursorSchema) : null;
+	const cursorCond = cursor
 		? or(
-				lte(table.tag.name, cursorPayload.value),
-				and(eq(table.tag.name, cursorPayload.value), lte(table.tag.id, cursorPayload.id))
+				lte(table.tag.name, cursor.value),
+				and(eq(table.tag.name, cursor.value), lte(table.tag.id, cursor.id))
 			)
 		: undefined;
 	return query

@@ -18,6 +18,9 @@ export type {
 	TagContentRepository,
 	SettingsRepository,
 	NewFile,
-	NewMedia
+	NewMedia,
+	PublishedMedia,
+	PublishedTag,
+	PublishedTagWithMedia
 } from './types';
 export type { Tag, NewTag, TagContent, NewTagContent } from '$lib/logic/tag';

@@ -1,12 +1,22 @@
 import { eq, lt, gte, desc, isNull, isNotNull, and, inArray, notInArray } from 'drizzle-orm';
 import type { PgSelect } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
-import type { MediaRepository, NewMedia, Pagination, PaginatedResult } from './types';
+import type {
+	MediaRepository,
+	NewMedia,
+	Pagination,
+	PaginatedResult,
+	PublishedMedia
+} from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
+import * as v from 'valibot';
 import { UniqueConstraintError, isUniqueViolation } from '../errors';
+import { encodeCursor, decodeCursor } from '$lib/logic/pagination';
 import type { Tag } from '$lib/logic/tag';
 import type { MediaFilter } from '$lib/logic/media';
+
+const mediaCursorSchema = v.object({ id: v.string() });
 
 const isDraft = isNull(table.media.publishedAt);
 const isPublished = isNotNull(table.media.publishedAt);
@@ -292,6 +302,54 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 		await db.update(table.media).set({ dirty: false }).where(inArray(table.media.id, ids));
 
 		return drafts.length;
+	},
+
+	async findAllPublished(pagination?: Pagination): Promise<PaginatedResult<PublishedMedia>> {
+		const limit = pagination?.limit ?? 24;
+		const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, mediaCursorSchema) : null;
+		const cursorCond = cursor ? lt(table.media.id, cursor.id) : undefined;
+
+		const rows = await db
+			.select({
+				id: table.media.id,
+				name: table.media.name,
+				slug: table.media.slug,
+				description: table.media.description
+			})
+			.from(table.media)
+			.where(and(isPublished, isNotDeleted, cursorCond))
+			.orderBy(desc(table.media.id))
+			.limit(limit + 1);
+
+		const hasMore = rows.length > limit;
+		const page = hasMore ? rows.slice(0, limit) : rows;
+		const last = page[page.length - 1];
+
+		return {
+			items: page.map((row) => ({
+				name: row.name,
+				slug: row.slug,
+				description: row.description
+			})),
+			pagination: {
+				limit,
+				cursor: hasMore && last ? encodeCursor({ id: last.id }) : null
+			}
+		};
+	},
+
+	async findPublishedMetaBySlug(slug: string): Promise<PublishedMedia | null> {
+		const result = await db
+			.select({
+				name: table.media.name,
+				slug: table.media.slug,
+				description: table.media.description
+			})
+			.from(table.media)
+			.where(and(eq(table.media.slug, slug), isPublished, isNotDeleted))
+			.orderBy(desc(table.media.publishedAt))
+			.limit(1);
+		return result[0] ?? null;
 	},
 
 	async findPublishedBySlug(slug: string) {

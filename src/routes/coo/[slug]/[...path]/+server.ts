@@ -11,7 +11,7 @@ export const GET: RequestHandler = async ({ params, fetch }) => {
 	// Build query params
 	const query = new URLSearchParams();
 
-	// Parse width from path: /media/[slug]/w/300
+	// Parse width from path: /coo/[slug]/w/300
 	if (params.path) {
 		const segments = params.path.split('/');
 		if (segments[0] === 'w' && segments[1]) {

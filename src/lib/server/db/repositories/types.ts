@@ -27,10 +27,6 @@ export type PaginatedResult<T> = {
 	pagination: Pagination;
 };
 
-export type CursorPayload = {
-	value: string;
-	id: string;
-};
 
 export interface FileRepository {
 	insert(data: NewFile): Promise<void>;
@@ -38,6 +34,25 @@ export interface FileRepository {
 	exists(hash: string): Promise<boolean>;
 	delete(hash: string): Promise<void>;
 }
+
+export type PublishedMedia = {
+	name: string;
+	slug: string;
+	description: string | null;
+};
+
+
+export type PublishedTagWithMedia = {
+	title: string | null;
+	description: string | null;
+	media: PaginatedResult<PublishedMedia>;
+};
+
+export type PublishedTag = {
+	slug: string;
+	title: string | null;
+	description: string | null;
+};
 
 export interface MediaRepository {
 	insert(data: NewMedia): Promise<string>;
@@ -57,6 +72,8 @@ export interface MediaRepository {
 	getTagsForMany(mediaIds: string[]): Promise<Map<string, Tag[]>>;
 	publish(ids: string[]): Promise<number>;
 	findPublishedBySlug(slug: string): Promise<File | null>;
+	findAllPublished(pagination?: Pagination): Promise<PaginatedResult<PublishedMedia>>;
+	findPublishedMetaBySlug(slug: string): Promise<PublishedMedia | null>;
 }
 
 export interface TagRepository {
@@ -79,6 +96,11 @@ export interface TagContentRepository {
 	): Promise<void>;
 	publish(tagId: string): Promise<void>;
 	findPublishedBySlug(slug: string): Promise<TagContent | null>;
+	findPublishedMediaByTagSlug(
+		slug: string,
+		pagination?: Pagination
+	): Promise<PublishedTagWithMedia | null>;
+	findAllPublished(pagination?: Pagination): Promise<PaginatedResult<PublishedTag>>;
 }
 
 export interface SettingsRepository {
