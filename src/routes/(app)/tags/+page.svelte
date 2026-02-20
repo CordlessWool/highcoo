@@ -3,29 +3,37 @@
 	import * as Load from '$lib/components/load';
 	import * as Tag from '$lib/components/tag';
 	import * as ButtonGroup from '$lib/components/ui/button-group';
+	import * as Filter from '$lib/components/filter';
 	import { getTagIds, getTagWithStatus, getCurrentIds } from '$lib/components/tag/tags.remote';
-	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { Plus } from '@lucide/svelte';
 	import type { Tag as TagType } from '$lib/logic/tag';
+	import type { PageProps } from './$types';
+	import { TAG_PAGE_LIMIT } from '$lib/logic/pagination';
+	import Empty from './empty.svelte';
 
-	const LIMIT = 24;
 
-	let search = $state('');
+	let { data }: PageProps = $props();
+
+	let filters = $state<{ search?: string }>({});
 	let expandedId = $state<string | null>(null);
 	let creating = $state(false);
 
-	let ids = $state<string[]>([]);
-	let cursor = $state<string | null>(null);
+	let ids = $state<string[]>(data.init.items);
+	let cursor = $state<string | null>(data.init.pagination.cursor ?? null);
 	let loading = $state(false);
-	let hasMore = $state(true);
+	let hasMore = $state(data.init.pagination.cursor !== null);
 
-	async function load(searchValue: string, cursorValue: string | null) {
+	function getFilter() {
+		return filters.search ? { search: filters.search } : undefined;
+	}
+
+	async function load(cursorValue: string | null) {
 		loading = true;
 		try {
 			const result = await getTagIds({
-				filter: searchValue ? { search: searchValue } : undefined,
-				pagination: { limit: LIMIT, cursor: cursorValue }
+				filter: getFilter(),
+				pagination: { limit: TAG_PAGE_LIMIT, cursor: cursorValue }
 			});
 			ids = cursorValue === null ? result.items : [...ids, ...result.items];
 			cursor = result.pagination.cursor ?? null;
@@ -35,9 +43,13 @@
 		}
 	}
 
-	$effect(() => {
-		load(search, null);
-	});
+	function handleSearch(value: string) {
+		filters.search = value || undefined;
+		cursor = null;
+		hasMore = false;
+		load(null);
+	}
+
 </script>
 
 <main class="flex min-h-screen w-full flex-col gap-2">
@@ -55,9 +67,14 @@
 				Create Tag
 			</Button>
 		</ButtonGroup.Root>
-		<Input placeholder="Search tags..." bind:value={search} class="max-w-xs" />
+		<Filter.Search onsearch={handleSearch} placeholder="Search tags…" class="h-8 max-w-xs" />
 	</Layout.BaseBar>
 
+	{#if ids.length === 0 && !loading && !creating}
+		<div class="grid min-h-0 flex-1 place-items-center">
+			<Empty />
+		</div>
+	{:else}
 	<div
 		class="grid auto-rows-[10rem] grid-cols-1 gap-4 p-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
 	>
@@ -72,7 +89,7 @@
 						isPublished: false
 					});
 					ids = await getCurrentIds({
-						filter: search ? { search } : undefined,
+						filter: getFilter(),
 						pagination: { cursor: cursor ?? undefined }
 					});
 					expandedId = tag.id;
@@ -105,8 +122,9 @@
 			{/if}
 		{/each}
 	</div>
+	{/if}
 
 	{#if hasMore && ids.length > 0}
-		<Load.InfinityLoad onLoadMore={() => load(search, cursor)} {loading} />
+		<Load.InfinityLoad onLoadMore={() => load(cursor)} {loading} />
 	{/if}
 </main>

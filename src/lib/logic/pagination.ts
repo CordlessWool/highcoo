@@ -1,5 +1,8 @@
 import * as v from 'valibot';
 
+export const MEDIA_PAGE_LIMIT = 24;
+export const TAG_PAGE_LIMIT = 24;
+
 export const Pagination = v.object({
 	cursor: v.optional(v.nullable(v.string())),
 	limit: v.optional(v.number()),

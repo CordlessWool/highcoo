@@ -13,9 +13,9 @@
 
 	import { SvelteSet } from 'svelte/reactivity';
 	import Empty from './empty.svelte';
+	import { MEDIA_PAGE_LIMIT } from '$lib/logic/pagination';
 	import type { PageProps } from './$types';
 
-	const LIMIT = 24;
 
 	let { data }: PageProps = $props();
 
@@ -36,7 +36,7 @@
 	async function load(cursorValue: string | null) {
 		loading = true;
 		try {
-			const result = await getMediaIds({ filter: getFilter(), pagination: { limit: LIMIT, cursor: cursorValue } });
+			const result = await getMediaIds({ filter: getFilter(), pagination: { limit: MEDIA_PAGE_LIMIT, cursor: cursorValue } });
 			ids = cursorValue === null ? result.items : [...ids, ...result.items];
 			cursor = result.pagination.cursor ?? null;
 			hasMore = result.pagination.cursor !== null;
