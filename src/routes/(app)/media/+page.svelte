@@ -20,6 +20,7 @@
 	let { data }: PageProps = $props();
 
 	let selectMode = $state(false);
+	let search = $state('');
 	let ids = $state<string[]>(data.init.items);
 	let cursor = $state<string | null>(data.init.pagination.cursor ?? null);
 	let loading = $state(false);
@@ -28,10 +29,14 @@
 
 	const selectedList = $derived(Array.from(selectedIds));
 
+	function getFilter() {
+		return search ? { search } : undefined;
+	}
+
 	async function load(cursorValue: string | null) {
 		loading = true;
 		try {
-			const result = await getMediaIds({ pagination: { limit: LIMIT, cursor: cursorValue } });
+			const result = await getMediaIds({ filter: getFilter(), pagination: { limit: LIMIT, cursor: cursorValue } });
 			ids = cursorValue === null ? result.items : [...ids, ...result.items];
 			cursor = result.pagination.cursor ?? null;
 			hasMore = result.pagination.cursor !== null;
@@ -44,11 +49,18 @@
 	async function refresh() {
 		loading = true;
 		try {
-			await getCurrentMediaIds({ pagination: { cursor } }).refresh();
-			ids = await getCurrentMediaIds({ pagination: { cursor } });
+			await getCurrentMediaIds({ filter: getFilter(), pagination: { cursor } }).refresh();
+			ids = await getCurrentMediaIds({ filter: getFilter(), pagination: { cursor } });
 		} finally {
 			loading = false;
 		}
+	}
+
+	function handleSearch(value: string) {
+		search = value;
+		cursor = null;
+		hasMore = false;
+		load(null);
 	}
 
 	function handleSelect(id: string, e: MouseEvent) {
@@ -100,6 +112,7 @@
 				onpublish={handlePublish}
 				ondelete={handleDelete}
 				onrestore={handleRestore}
+				onsearch={handleSearch}
 			/>
 		</Layout.BaseBar>
 

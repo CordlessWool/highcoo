@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import { Send } from '@lucide/svelte';
+	import * as Filter from '$lib/components/filter';
 	import DeleteButton from './delete-button.svelte';
 	import UploadButton from './upload-button.svelte';
 
@@ -13,6 +14,7 @@
 		onpublish: () => void;
 		ondelete: (ids: string[]) => void;
 		onrestore: () => void;
+		onsearch: (value: string) => void;
 	};
 
 	let {
@@ -23,12 +25,15 @@
 		onexitselect,
 		onpublish,
 		ondelete,
-		onrestore
+		onrestore,
+		onsearch
 	}: Props = $props();
 </script>
 
 {#if selectMode}
 	<span class="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+{:else}
+	<Filter.Search {onsearch} class="h-8 w-48" />
 {/if}
 
 <div class="ml-auto flex items-center gap-2">
