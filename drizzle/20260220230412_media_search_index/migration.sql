@@ -1,0 +1,1 @@
+CREATE INDEX "media_search_idx" ON "media" USING gin ((setweight(to_tsvector('simple', "name"), 'A') || setweight(to_tsvector('simple', coalesce("description", '')), 'B')));

@@ -1,6 +1,7 @@
 import {
 	boolean,
 	bytea,
+	index,
 	integer,
 	pgTable,
 	primaryKey,
@@ -62,7 +63,9 @@ export const media = pgTable(
 			.where(sql`published_at IS NULL`),
 		uniqueIndex('media_slug_draft')
 			.on(table.slug)
-			.where(sql`published_at IS NULL`)
+			.where(sql`published_at IS NULL`),
+		index('media_search_idx')
+			.using('gin', sql`(setweight(to_tsvector('simple', ${table.name}), 'A') || setweight(to_tsvector('simple', coalesce(${table.description}, '')), 'B'))`)
 	]
 );
 

@@ -1,4 +1,4 @@
-import { eq, lt, gte, desc, isNull, isNotNull, and, inArray, notInArray } from 'drizzle-orm';
+import { eq, lt, gte, desc, isNull, isNotNull, and, inArray, notInArray, sql } from 'drizzle-orm';
 import type { PgSelect } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
 import type {
@@ -24,9 +24,14 @@ const isNotDeleted = isNull(table.media.deletedAt);
 
 // --- Dynamic query modifiers ---
 
-function filterCond(_filter?: MediaFilter) {
-	// search filter reserved for future use
-	return and(isDraft, isNotDeleted);
+function filterCond(filter?: MediaFilter) {
+	let searchCond;
+	if (filter?.search) {
+		const vector = sql`(setweight(to_tsvector('simple', ${table.media.name}), 'A') || setweight(to_tsvector('simple', coalesce(${table.media.description}, '')), 'B'))`;
+		const query = sql`plainto_tsquery('simple', ${filter.search})`;
+		searchCond = sql`${vector} @@ ${query}`;
+	}
+	return and(isDraft, isNotDeleted, searchCond);
 }
 
 function applyPagination<T extends PgSelect>(
