@@ -11,11 +11,12 @@ export const GET: RequestHandler = async ({ params, fetch }) => {
 	// Build query params
 	const query = new URLSearchParams();
 
-	// Parse width from path: /coo/[slug]/w/300
+	// Parse key/value segments from path: /coo/[slug]/w/480/f/jpeg
 	if (params.path) {
 		const segments = params.path.split('/');
-		if (segments[0] === 'w' && segments[1]) {
-			query.set('w', segments[1]);
+		for (let i = 0; i < segments.length - 1; i += 2) {
+			if (segments[i] === 'w') query.set('w', segments[i + 1]);
+			if (segments[i] === 'f') query.set('fmt', segments[i + 1]);
 		}
 	}
 
