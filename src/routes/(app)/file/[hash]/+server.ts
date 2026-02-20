@@ -62,7 +62,8 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			pipeline.watermark({
 				buffer: Buffer.from(await new Response(wmStream).arrayBuffer()),
 				opacity: parseFloat(url.searchParams.get('wm_opacity') ?? '0.5'),
-				position: (url.searchParams.get('wm_pos') ?? WatermarkPosition.BottomRight) as WatermarkPosition
+				position: (url.searchParams.get('wm_pos') ??
+					WatermarkPosition.BottomRight) as WatermarkPosition
 			});
 		}
 	}

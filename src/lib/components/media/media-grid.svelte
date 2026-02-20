@@ -8,12 +8,13 @@
 	type Props = {
 		ids: string[];
 		selectedIds: Set<string>;
+		selectMode?: boolean;
 		children: Snippet<[GridItem]>;
 	} & Omit<HTMLAttributes<HTMLDivElement>, 'children'>;
 
-	let { ids, selectedIds, children, class: className, ...props }: Props = $props();
+	let { ids, selectedIds, selectMode = false, children, class: className, ...props }: Props = $props();
 
-	const primaryId = $derived(Array.from(selectedIds)[0] ?? null);
+	const primaryId = $derived(selectMode ? null : (Array.from(selectedIds)[0] ?? null));
 </script>
 
 <div

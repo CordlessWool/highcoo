@@ -2,11 +2,8 @@
 	import * as Layout from '$lib/components/layout';
 	import * as Load from '$lib/components/load';
 	import * as Media from '$lib/components/media';
-	import * as ButtonGroup from '$lib/components/ui/button-group';
 	import MediaCard from '$lib/components/media/media-card.svelte';
 	import MediaEditCard from '$lib/components/media/media-edit-card.svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Send, X } from '@lucide/svelte';
 	import {
 		getMediaIds,
 		getCurrentMediaIds,
@@ -22,6 +19,7 @@
 
 	let { data }: PageProps = $props();
 
+	let selectMode = $state(false);
 	let ids = $state<string[]>(data.init.items);
 	let cursor = $state<string | null>(data.init.pagination.cursor ?? null);
 	let loading = $state(false);
@@ -29,7 +27,6 @@
 	const selectedIds = new SvelteSet<string>();
 
 	const selectedList = $derived(Array.from(selectedIds));
-	const isMultiEdit = $derived(selectedIds.size >= 2);
 
 	async function load(cursorValue: string | null) {
 		loading = true;
@@ -55,7 +52,7 @@
 	}
 
 	function handleSelect(id: string, e: MouseEvent) {
-		if (e.shiftKey || e.ctrlKey || e.metaKey) {
+		if (selectMode || e.shiftKey || e.ctrlKey || e.metaKey) {
 			if (selectedIds.has(id)) {
 				selectedIds.delete(id);
 			} else {
@@ -74,19 +71,17 @@
 	}
 
 	function handleRestore() {
-		console.log('resote');
 		refresh();
 	}
 
 	async function handlePublish() {
-		// Determine dirty count among selected
 		const items = await Promise.all(selectedList.map((id) => getMedia(id)));
 		const dirtyIds = items.filter((m) => m?.dirty).map((m) => m!.id);
 		if (dirtyIds.length === 0) return;
 		await publishMedia(dirtyIds);
 	}
 
-	const dirtyCountPromise = $derived.by(async () => {
+	const dirtyCount = $derived.by(async () => {
 		if (selectedIds.size === 0) return 0;
 		const items = await Promise.all(selectedList.map((id) => getMedia(id)));
 		return items.filter((m) => m?.dirty).length;
@@ -96,42 +91,16 @@
 <Load.Provider oncomplete={() => refresh()}>
 	<main class="flex min-h-screen w-full flex-col gap-2">
 		<Layout.BaseBar>
-			{#if isMultiEdit}
-				<ButtonGroup.Root>
-					<span class="flex items-center px-2 text-sm text-muted-foreground">
-						{selectedIds.size} selected
-					</span>
-					<Button variant="ghost" size="sm" onclick={() => selectedIds.clear()}>
-						<X class="h-4 w-4" />
-						Clear
-					</Button>
-				</ButtonGroup.Root>
-
-				<ButtonGroup.Root>
-					{#await dirtyCountPromise then dirtyCount}
-						{#if dirtyCount > 0}
-							<Button variant="outline" size="sm" onclick={handlePublish}>
-								<Send class="h-4 w-4" />
-								Publish
-								<span
-									class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground"
-								>
-									{dirtyCount}
-								</span>
-							</Button>
-						{/if}
-					{/await}
-					<Media.DeleteButton
-						selected={selectedList}
-						ondelete={handleDelete}
-						onrestore={handleRestore}
-					/>
-				</ButtonGroup.Root>
-			{:else}
-				<ButtonGroup.Root>
-					<Media.UploadButton />
-				</ButtonGroup.Root>
-			{/if}
+			<Media.Toolbar
+				{selectMode}
+				selectedIds={selectedList}
+				dirtyCount={await dirtyCount}
+				onenterselect={() => (selectMode = true)}
+				onexitselect={() => { selectMode = false; selectedIds.clear(); }}
+				onpublish={handlePublish}
+				ondelete={handleDelete}
+				onrestore={handleRestore}
+			/>
 		</Layout.BaseBar>
 
 		<Load.Progress />
@@ -141,7 +110,7 @@
 				<Empty />
 			</div>
 		{:else}
-			<Media.Grid {ids} {selectedIds} class="mx-3">
+			<Media.Grid {ids} {selectedIds} {selectMode} class="mx-3">
 				{#snippet children({ id, isPrimary, isSelected })}
 					{#if isPrimary}
 						<MediaEditCard

@@ -11,7 +11,9 @@
 
 <header class="flex items-center gap-3 p-3">
 	<NavHeader />
-	<div class="ml-7 flex items-center gap-3">
-		{@render children?.()}
-	</div>
+	{#if children}
+		<div class="ml-7 flex flex-1 items-center gap-3">
+			{@render children()}
+		</div>
+	{/if}
 </header>
