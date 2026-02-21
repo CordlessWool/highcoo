@@ -1,6 +1,4 @@
 import { eq, lt, gte, desc, isNull, isNotNull, and, or, inArray, notInArray, sql, exists, not, aliasedTable } from 'drizzle-orm';
-import type { SQL } from 'drizzle-orm';
-import type { PgSelect } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
 import type {
 	MediaRepository,
@@ -16,6 +14,7 @@ import { UniqueConstraintError, isUniqueViolation } from '../errors';
 import { encodeCursor, decodeCursor } from '$lib/logic/pagination';
 import type { Tag } from '$lib/logic/tag';
 import type { MediaFilter } from '$lib/logic/media';
+import { type QueryDef, emptyDef, execute } from './query';
 
 const mediaCursorSchema = v.object({ id: v.string() });
 
@@ -23,31 +22,14 @@ const isDraft = isNull(table.media.publishedAt);
 const isPublished = isNotNull(table.media.publishedAt);
 const isNotDeleted = isNull(table.media.deletedAt);
 
-// --- QueryDef pipeline ---
-
-type QueryDef = {
-	conditions: (SQL | undefined)[];
-	joins: (<T extends PgSelect>(q: T) => T)[];
-	orderBy: SQL[];
-	limit?: number;
-};
-
-function emptyDef(): QueryDef {
-	return { conditions: [isNotDeleted], joins: [], orderBy: [] };
-}
-
-function execute<T extends PgSelect>(query: T, def: QueryDef) {
-	for (const join of def.joins) query = join(query);
-	let q = query.where(and(...def.conditions));
-	if (def.orderBy.length) q = q.orderBy(...def.orderBy);
-	if (def.limit) q = q.limit(def.limit);
-	return q;
-}
-
 export const createMediaRepository = (db: typeof database): MediaRepository => {
 	const publishedMedia = aliasedTable(table.media, 'published_media');
 
 	// --- Pipeline filter functions ---
+
+	function withoutDeleted(def: QueryDef): QueryDef {
+		return { ...def, conditions: [...def.conditions, isNotDeleted] };
+	}
 
 	function withDraft(def: QueryDef): QueryDef {
 		return { ...def, conditions: [...def.conditions, isDraft] };
@@ -176,7 +158,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 	},
 
 	async findCurrentIds(filter?: MediaFilter, pagination?: Pagination): Promise<string[]> {
-		let def = withDraft(emptyDef());
+		let def = withDraft(withoutDeleted(emptyDef()));
 		def = withSearch(def, filter);
 		def = withTags(def, filter);
 		def = withStatus(def, filter);
@@ -194,7 +176,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 	): Promise<PaginatedResult<string>> {
 		const limit = pagination?.limit ?? 24;
 
-		let def = withDraft(emptyDef());
+		let def = withDraft(withoutDeleted(emptyDef()));
 		def = withSearch(def, filter);
 		def = withTags(def, filter);
 		def = withStatus(def, filter);
@@ -216,7 +198,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 	async findAll(pagination: Pagination) {
 		const limit = pagination.limit ?? 20;
 
-		let def = withDraft(emptyDef());
+		let def = withDraft(withoutDeleted(emptyDef()));
 		def = withCursorBefore(def, pagination.cursor);
 		def = withOrder(def);
 		def = withLimit(def, limit + 1);

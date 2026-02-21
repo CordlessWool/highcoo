@@ -1,56 +1,13 @@
 import { and, asc, eq, gt, ilike, inArray, lte, or, sql } from 'drizzle-orm';
-import type { PgSelect } from 'drizzle-orm/pg-core';
 import * as v from 'valibot';
 import type { TagRepository, Pagination, PaginatedResult } from './types';
 import type { db as database } from '../index';
 import * as table from '../schema';
 import type { Tag, TagWithStatus, TagFilter, NewTag } from '$lib/logic/tag';
 import { encodeCursor, decodeCursor } from '$lib/logic/pagination';
+import { type QueryDef, emptyDef, execute } from './query';
 
 const tagCursorSchema = v.object({ id: v.string(), value: v.string() });
-
-// --- Dynamic query modifiers ---
-
-function filterCond(filter?: TagFilter) {
-	if (!filter?.search) return undefined;
-	return ilike(table.tag.name, `%${filter.search}%`);
-}
-
-function applyPagination<T extends PgSelect>(
-	query: T,
-	filter?: TagFilter,
-	pagination?: Pagination
-) {
-	const limit = pagination?.limit ?? 24;
-	const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, tagCursorSchema) : null;
-	const cursorCond = cursor
-		? or(
-				gt(table.tag.name, cursor.value),
-				and(eq(table.tag.name, cursor.value), gt(table.tag.id, cursor.id))
-			)
-		: undefined;
-	return query
-		.where(and(filterCond(filter), cursorCond))
-		.orderBy(asc(table.tag.name), asc(table.tag.id))
-		.limit(limit + 1);
-}
-
-function applyCurrentState<T extends PgSelect>(
-	query: T,
-	filter?: TagFilter,
-	pagination?: Pagination
-) {
-	const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, tagCursorSchema) : null;
-	const cursorCond = cursor
-		? or(
-				lte(table.tag.name, cursor.value),
-				and(eq(table.tag.name, cursor.value), lte(table.tag.id, cursor.id))
-			)
-		: undefined;
-	return query
-		.where(and(filterCond(filter), cursorCond))
-		.orderBy(asc(table.tag.name), asc(table.tag.id));
-}
 
 // --- Status fields ---
 
@@ -73,7 +30,43 @@ const statusFields = {
 	)`
 };
 
-export const createTagRepository = (db: typeof database): TagRepository => ({
+export const createTagRepository = (db: typeof database): TagRepository => {
+	// --- Pipeline filter functions ---
+
+	function withSearch(def: QueryDef, filter?: TagFilter): QueryDef {
+		if (!filter?.search) return def;
+		return { ...def, conditions: [...def.conditions, ilike(table.tag.name, `%${filter.search}%`)] };
+	}
+
+	function withCursorAfter(def: QueryDef, pagination?: Pagination): QueryDef {
+		const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, tagCursorSchema) : null;
+		if (!cursor) return def;
+		const cond = or(
+			gt(table.tag.name, cursor.value),
+			and(eq(table.tag.name, cursor.value), gt(table.tag.id, cursor.id))
+		);
+		return { ...def, conditions: [...def.conditions, cond] };
+	}
+
+	function withCursorBefore(def: QueryDef, pagination?: Pagination): QueryDef {
+		const cursor = pagination?.cursor ? decodeCursor(pagination.cursor, tagCursorSchema) : null;
+		if (!cursor) return def;
+		const cond = or(
+			lte(table.tag.name, cursor.value),
+			and(eq(table.tag.name, cursor.value), lte(table.tag.id, cursor.id))
+		);
+		return { ...def, conditions: [...def.conditions, cond] };
+	}
+
+	function withOrder(def: QueryDef): QueryDef {
+		return { ...def, orderBy: [...def.orderBy, asc(table.tag.name), asc(table.tag.id)] };
+	}
+
+	function withLimit(def: QueryDef, limit: number): QueryDef {
+		return { ...def, limit };
+	}
+
+	return {
 	async create(input: NewTag): Promise<Tag> {
 		const [tag] = await db
 			.insert(table.tag)
@@ -85,13 +78,15 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 	async findAll(filter?: TagFilter, pagination?: Pagination): Promise<PaginatedResult<Tag>> {
 		const limit = pagination?.limit ?? 24;
 		const orderBy = pagination?.orderBy ?? 'name';
-		const q = db
-			.select({ id: table.tag.id, name: table.tag.name, color: table.tag.color })
-			.from(table.tag)
-			.$dynamic();
 
-		const rows = await applyPagination(q, filter, pagination);
+		let def = emptyDef();
+		def = withSearch(def, filter);
+		def = withCursorAfter(def, pagination);
+		def = withOrder(def);
+		def = withLimit(def, limit + 1);
 
+		const q = db.select({ id: table.tag.id, name: table.tag.name, color: table.tag.color }).from(table.tag).$dynamic();
+		const rows = await execute(q, def);
 		const hasMore = rows.length > limit;
 		const page = hasMore ? rows.slice(0, limit) : rows;
 		const last = page[page.length - 1];
@@ -106,10 +101,15 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 	async findAllIds(filter?: TagFilter, pagination?: Pagination): Promise<PaginatedResult<string>> {
 		const limit = pagination?.limit ?? 24;
 		const orderBy = pagination?.orderBy ?? 'name';
+
+		let def = emptyDef();
+		def = withSearch(def, filter);
+		def = withCursorAfter(def, pagination);
+		def = withOrder(def);
+		def = withLimit(def, limit + 1);
+
 		const q = db.select({ id: table.tag.id, name: table.tag.name }).from(table.tag).$dynamic();
-
-		const rows = await applyPagination(q, filter, pagination);
-
+		const rows = await execute(q, def);
 		const hasMore = rows.length > limit;
 		const page = hasMore ? rows.slice(0, limit) : rows;
 		const last = page[page.length - 1];
@@ -122,8 +122,13 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 	},
 
 	async findCurrentIds(filter?: TagFilter, pagination?: Pagination): Promise<string[]> {
+		let def = emptyDef();
+		def = withSearch(def, filter);
+		def = withCursorBefore(def, pagination);
+		def = withOrder(def);
+
 		const q = db.select({ id: table.tag.id, name: table.tag.name }).from(table.tag).$dynamic();
-		const rows = await applyCurrentState(q, filter, pagination);
+		const rows = await execute(q, def);
 		return rows.map((r) => r.id);
 	},
 
@@ -144,4 +149,4 @@ export const createTagRepository = (db: typeof database): TagRepository => ({
 	async delete(id: string): Promise<void> {
 		await db.delete(table.tag).where(eq(table.tag.id, id));
 	}
-});
+}};
