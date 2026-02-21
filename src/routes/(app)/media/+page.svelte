@@ -88,17 +88,8 @@
 	}
 
 	async function handlePublish() {
-		const items = await Promise.all(selectedList.map((id) => getMedia(id)));
-		const dirtyIds = items.filter((m) => m?.dirty).map((m) => m!.id);
-		if (dirtyIds.length === 0) return;
-		await publishMedia(dirtyIds);
+		await publishMedia(selectedList);
 	}
-
-	const dirtyCount = $derived.by(async () => {
-		if (selectedIds.size === 0) return 0;
-		const items = await Promise.all(selectedList.map((id) => getMedia(id)));
-		return items.filter((m) => m?.dirty).length;
-	});
 </script>
 
 <Load.Provider oncomplete={() => refresh()}>
@@ -107,7 +98,6 @@
 			<Media.Toolbar
 				{selectMode}
 				selectedIds={selectedList}
-				dirtyCount={await dirtyCount}
 				{filter}
 				onenterselect={() => (selectMode = true)}
 				onexitselect={() => { selectMode = false; selectedIds.clear(); }}

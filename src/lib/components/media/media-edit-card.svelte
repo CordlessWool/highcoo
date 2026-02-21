@@ -34,7 +34,7 @@
 	const descSame = $derived(
 		items.every((m) => (m.description ?? '') === (items[0]?.description ?? ''))
 	);
-	const dirtyIds = $derived(items.filter((m) => m.dirty).map((m) => m.id));
+	const anyDirty = $derived(items.some((m) => m.dirty));
 
 	let isHorizontal = $state(false);
 
@@ -89,17 +89,10 @@
 	<div class="flex min-w-0 flex-1 flex-col bg-card">
 		<Card.Root class="flex h-full flex-col rounded-none border-0 shadow-none">
 			<Card.Header class="flex flex-row items-center justify-between gap-2">
-				{#if dirtyIds.length > 0}
-					<Button variant="outline" size="sm" onclick={() => publishMedia(dirtyIds)}>
+				{#if anyDirty}
+					<Button variant="outline" size="sm" onclick={() => publishMedia(selectedIds)}>
 						<Send class="h-4 w-4" />
 						Publish
-						{#if dirtyIds.length > 1}
-							<span
-								class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground"
-							>
-								{dirtyIds.length}
-							</span>
-						{/if}
 					</Button>
 				{:else}
 					<span></span>

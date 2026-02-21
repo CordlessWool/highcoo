@@ -11,7 +11,6 @@
 	type Props = {
 		selectMode: boolean;
 		selectedIds: string[];
-		dirtyCount: number;
 		filter: MediaFilter;
 		onenterselect: () => void;
 		onexitselect: () => void;
@@ -24,7 +23,6 @@
 	let {
 		selectMode,
 		selectedIds,
-		dirtyCount,
 		filter,
 		onenterselect,
 		onexitselect,
@@ -47,14 +45,9 @@
 <div class="ml-auto flex items-center gap-2">
 	{#if selectMode}
 		<DeleteButton selected={selectedIds} {ondelete} {onrestore} />
-		<Button variant="outline" size="sm" onclick={onpublish} disabled={dirtyCount === 0}>
+		<Button variant="outline" size="sm" onclick={onpublish} disabled={selectedIds.length === 0}>
 			<Send class="h-4 w-4" />
 			Publish
-			{#if dirtyCount > 0}
-				<span class="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
-					{dirtyCount}
-				</span>
-			{/if}
 		</Button>
 		<Button variant="outline" size="sm" onclick={onexitselect}>
 			Done
