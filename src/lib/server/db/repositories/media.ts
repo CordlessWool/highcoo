@@ -170,6 +170,19 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 		return rows.map((r) => r.id);
 	},
 
+	async filterIds(ids: string[], filter?: MediaFilter): Promise<string[]> {
+		if (ids.length === 0) return [];
+		let def = withDraft(withoutDeleted(emptyDef()));
+		def = { ...def, conditions: [...def.conditions, inArray(table.media.id, ids)] };
+		def = withSearch(def, filter);
+		def = withTags(def, filter);
+		def = withStatus(def, filter);
+
+		const q = db.select({ id: table.media.id }).from(table.media).$dynamic();
+		const rows = await execute(q, def);
+		return rows.map((r) => r.id);
+	},
+
 	async findAllIds(
 		filter?: MediaFilter,
 		pagination?: Pagination

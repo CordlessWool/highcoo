@@ -63,6 +63,7 @@ export interface MediaRepository {
 	findAll(pagination: Pagination): Promise<PaginatedResult<Media>>;
 	findCurrentIds(filter?: MediaFilter, pagination?: Pagination): Promise<string[]>;
 	findAllIds(filter?: MediaFilter, pagination?: Pagination): Promise<PaginatedResult<string>>;
+	filterIds(ids: string[], filter?: MediaFilter): Promise<string[]>;
 	softDelete(id: string): Promise<void>;
 	restore(id: string): Promise<void>;
 	patch(id: string, data: Partial<Omit<Media, 'id' | 'fileHash'>>): Promise<void>;

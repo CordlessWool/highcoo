@@ -93,6 +93,13 @@ export const getTagsForMedia = query.batch(v.string(), async (ids: string[]) => 
 	return (id: string): Tag[] => tagMap.get(id) ?? [];
 });
 
+export const filterMediaIds = query(
+	v.object({ ids: v.array(v.string()), filter: v.optional(MediaFilter) }),
+	async ({ ids, filter }) => {
+		return mediaRepository.filterIds(ids, filter);
+	}
+);
+
 export const publishMedia = command(v.array(v.string()), async (ids) => {
 	const count = await mediaRepository.publish(ids);
 	ids.map((id) => getMedia(id).refresh());

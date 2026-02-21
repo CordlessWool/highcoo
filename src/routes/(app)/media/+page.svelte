@@ -61,6 +61,7 @@
 		filter = next;
 		cursor = null;
 		hasMore = false;
+		if (!selectMode) selectedIds.clear();
 		load(null);
 	}
 
@@ -105,6 +106,7 @@
 				ondelete={handleDelete}
 				onrestore={handleRestore}
 				onfilterchange={handleFilterChange}
+				onsettovisible={(kept) => { selectedIds.clear(); for (const id of kept) selectedIds.add(id); }}
 			/>
 		</Layout.BaseBar>
 
