@@ -35,6 +35,7 @@
 
 {#if selectMode}
 	<span class="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+	<MediaFilterPanel {filter} {onfilterchange} />
 {:else}
 	<ButtonGroup.Root>
 		<Filter.Search value={filter.search} onsearch={(v) => onfilterchange({ ...filter, search: v || undefined })} class="h-8 w-48" />
