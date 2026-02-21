@@ -1,4 +1,5 @@
-import { eq, lt, gte, desc, isNull, isNotNull, and, inArray, notInArray, sql } from 'drizzle-orm';
+import { eq, lt, gte, desc, isNull, isNotNull, and, or, inArray, notInArray, sql, exists, not, aliasedTable } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { PgSelect } from 'drizzle-orm/pg-core';
 import { nanoid } from 'nanoid';
 import type {
@@ -22,43 +23,105 @@ const isDraft = isNull(table.media.publishedAt);
 const isPublished = isNotNull(table.media.publishedAt);
 const isNotDeleted = isNull(table.media.deletedAt);
 
-// --- Dynamic query modifiers ---
+// --- QueryDef pipeline ---
 
-function filterCond(filter?: MediaFilter) {
-	let searchCond;
-	if (filter?.search) {
+type QueryDef = {
+	conditions: (SQL | undefined)[];
+	joins: (<T extends PgSelect>(q: T) => T)[];
+	orderBy: SQL[];
+	limit?: number;
+};
+
+function emptyDef(): QueryDef {
+	return { conditions: [isNotDeleted], joins: [], orderBy: [] };
+}
+
+function execute<T extends PgSelect>(query: T, def: QueryDef) {
+	for (const join of def.joins) query = join(query);
+	let q = query.where(and(...def.conditions));
+	if (def.orderBy.length) q = q.orderBy(...def.orderBy);
+	if (def.limit) q = q.limit(def.limit);
+	return q;
+}
+
+export const createMediaRepository = (db: typeof database): MediaRepository => {
+	const publishedMedia = aliasedTable(table.media, 'published_media');
+
+	// --- Pipeline filter functions ---
+
+	function withDraft(def: QueryDef): QueryDef {
+		return { ...def, conditions: [...def.conditions, isDraft] };
+	}
+
+	function withSearch(def: QueryDef, filter?: MediaFilter): QueryDef {
+		if (!filter?.search) return def;
 		const vector = sql`(setweight(to_tsvector('simple', ${table.media.name}), 'A') || setweight(to_tsvector('simple', coalesce(${table.media.description}, '')), 'B'))`;
 		const query = sql`plainto_tsquery('simple', ${filter.search})`;
-		searchCond = sql`${vector} @@ ${query}`;
+		return { ...def, conditions: [...def.conditions, sql`${vector} @@ ${query}`] };
 	}
-	return and(isDraft, isNotDeleted, searchCond);
-}
 
-function applyPagination<T extends PgSelect>(
-	query: T,
-	filter?: MediaFilter,
-	pagination?: Pagination
-) {
-	const limit = pagination?.limit ?? 24;
-	const cursor = pagination?.cursor;
-	const cursorCond = cursor ? lt(table.media.id, cursor) : undefined;
-	return query
-		.where(and(filterCond(filter), cursorCond))
-		.orderBy(desc(table.media.id))
-		.limit(limit + 1);
-}
+	function withTags(def: QueryDef, filter?: MediaFilter): QueryDef {
+		if (!filter?.tagIds?.length) return def;
+		const cond = exists(
+			db
+				.select({ one: sql`1` })
+				.from(table.mediaTag)
+				.where(
+					and(
+						eq(table.mediaTag.mediaId, table.media.id),
+						inArray(table.mediaTag.tagId, filter.tagIds)
+					)
+				)
+		);
+		return { ...def, conditions: [...def.conditions, cond] };
+	}
 
-function applyCurrentState<T extends PgSelect>(
-	query: T,
-	filter?: MediaFilter,
-	pagination?: Pagination
-) {
-	const cursor = pagination?.cursor;
-	const cursorCond = cursor ? gte(table.media.id, cursor) : undefined;
-	return query.where(and(filterCond(filter), cursorCond)).orderBy(desc(table.media.id));
-}
+	function withStatus(def: QueryDef, filter?: MediaFilter): QueryDef {
+		if (!filter?.status?.length) return def;
+		const hasPublished = exists(
+			db
+				.select({ one: sql`1` })
+				.from(publishedMedia)
+				.where(
+					and(
+						eq(publishedMedia.fileHash, table.media.fileHash),
+						isNotNull(publishedMedia.publishedAt),
+						isNull(publishedMedia.deletedAt)
+					)
+				)
+		);
+		const conditions = filter.status.map((s) => {
+			if (s === 'draft') {
+				return and(eq(table.media.dirty, true), not(hasPublished));
+			} else if (s === 'unpublished') {
+				return and(eq(table.media.dirty, true), hasPublished);
+			} else {
+				// published: draft is clean (dirty = false), meaning it matches the published version
+				return eq(table.media.dirty, false);
+			}
+		});
+		return { ...def, conditions: [...def.conditions, or(...conditions)] };
+	}
 
-export const createMediaRepository = (db: typeof database): MediaRepository => ({
+	function withCursorBefore(def: QueryDef, cursor?: string | null): QueryDef {
+		if (!cursor) return def;
+		return { ...def, conditions: [...def.conditions, lt(table.media.id, cursor)] };
+	}
+
+	function withCursorAfter(def: QueryDef, cursor?: string | null): QueryDef {
+		if (!cursor) return def;
+		return { ...def, conditions: [...def.conditions, gte(table.media.id, cursor)] };
+	}
+
+	function withOrder(def: QueryDef): QueryDef {
+		return { ...def, orderBy: [...def.orderBy, desc(table.media.id)] };
+	}
+
+	function withLimit(def: QueryDef, limit: number): QueryDef {
+		return { ...def, limit };
+	}
+
+	return {
 	async insert(data: NewMedia): Promise<string> {
 		const now = new Date();
 		try {
@@ -113,8 +176,15 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async findCurrentIds(filter?: MediaFilter, pagination?: Pagination): Promise<string[]> {
+		let def = withDraft(emptyDef());
+		def = withSearch(def, filter);
+		def = withTags(def, filter);
+		def = withStatus(def, filter);
+		def = withCursorAfter(def, pagination?.cursor);
+		def = withOrder(def);
+
 		const q = db.select({ id: table.media.id }).from(table.media).$dynamic();
-		const rows = await applyCurrentState(q, filter, pagination);
+		const rows = await execute(q, def);
 		return rows.map((r) => r.id);
 	},
 
@@ -123,8 +193,17 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 		pagination?: Pagination
 	): Promise<PaginatedResult<string>> {
 		const limit = pagination?.limit ?? 24;
+
+		let def = withDraft(emptyDef());
+		def = withSearch(def, filter);
+		def = withTags(def, filter);
+		def = withStatus(def, filter);
+		def = withCursorBefore(def, pagination?.cursor);
+		def = withOrder(def);
+		def = withLimit(def, limit + 1);
+
 		const q = db.select({ id: table.media.id }).from(table.media).$dynamic();
-		const rows = await applyPagination(q, filter, pagination);
+		const rows = await execute(q, def);
 		const hasMore = rows.length > limit;
 		const page = hasMore ? rows.slice(0, limit) : rows;
 		const last = page[page.length - 1];
@@ -135,19 +214,15 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 	},
 
 	async findAll(pagination: Pagination) {
-		const { limit = 20, cursor } = pagination;
+		const limit = pagination.limit ?? 20;
 
-		const whereClause = cursor
-			? and(isDraft, isNotDeleted, lt(table.media.id, cursor))
-			: and(isDraft, isNotDeleted);
+		let def = withDraft(emptyDef());
+		def = withCursorBefore(def, pagination.cursor);
+		def = withOrder(def);
+		def = withLimit(def, limit + 1);
 
-		const items = await db
-			.select()
-			.from(table.media)
-			.where(whereClause)
-			.orderBy(desc(table.media.id))
-			.limit(limit + 1);
-
+		const q = db.select().from(table.media).$dynamic();
+		const items = await execute(q, def);
 		const hasMore = items.length > limit;
 		const results = hasMore ? items.slice(0, -1) : items;
 		const lastItem = results[results.length - 1];
@@ -367,4 +442,4 @@ export const createMediaRepository = (db: typeof database): MediaRepository => (
 			.limit(1);
 		return result[0]?.file ?? null;
 	}
-});
+}};

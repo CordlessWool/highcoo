@@ -7,18 +7,17 @@
 		placeholder?: string;
 		delay?: number;
 		class?: string;
+		value?: string;
 		onsearch: (value: string) => void;
 	};
 
-	let { placeholder = 'Search…', delay = 300, class: className, onsearch }: Props = $props();
-
-	let value = $state('');
+	let { placeholder = 'Search…', delay = 300, class: className, value = '', onsearch }: Props =
+		$props();
 
 	const search = $derived(debounce((val: string) => onsearch(val), delay));
 
 	function handleInput(e: Event & { currentTarget: HTMLInputElement }) {
-		value = e.currentTarget.value;
-		search(value);
+		search(e.currentTarget.value);
 	}
 </script>
 

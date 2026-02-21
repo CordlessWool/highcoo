@@ -15,12 +15,13 @@
 	import Empty from './empty.svelte';
 	import { MEDIA_PAGE_LIMIT } from '$lib/logic/pagination';
 	import type { PageProps } from './$types';
+	import type { MediaFilter } from '$lib/logic/media';
 
 
 	let { data }: PageProps = $props();
 
 	let selectMode = $state(false);
-	let search = $state('');
+	let filter = $state<MediaFilter>({});
 	let ids = $state<string[]>(data.init.items);
 	let cursor = $state<string | null>(data.init.pagination.cursor ?? null);
 	let loading = $state(false);
@@ -29,8 +30,8 @@
 
 	const selectedList = $derived(Array.from(selectedIds));
 
-	function getFilter() {
-		return search ? { search } : undefined;
+	function getFilter(): MediaFilter | undefined {
+		return Object.keys(filter).length ? filter : undefined;
 	}
 
 	async function load(cursorValue: string | null) {
@@ -56,8 +57,8 @@
 		}
 	}
 
-	function handleSearch(value: string) {
-		search = value;
+	function handleFilterChange(next: MediaFilter) {
+		filter = next;
 		cursor = null;
 		hasMore = false;
 		load(null);
@@ -107,12 +108,13 @@
 				{selectMode}
 				selectedIds={selectedList}
 				dirtyCount={await dirtyCount}
+				{filter}
 				onenterselect={() => (selectMode = true)}
 				onexitselect={() => { selectMode = false; selectedIds.clear(); }}
 				onpublish={handlePublish}
 				ondelete={handleDelete}
 				onrestore={handleRestore}
-				onsearch={handleSearch}
+				onfilterchange={handleFilterChange}
 			/>
 		</Layout.BaseBar>
 
