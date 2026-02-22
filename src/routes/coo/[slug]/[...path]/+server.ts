@@ -1,43 +1,55 @@
 import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
-import { mediaRepository, settingsRepository } from '$lib/server/db/repositories';
+import { mediaRepository, fileRepository, settingsRepository } from '$lib/server/db/repositories';
+import { storage } from '$lib/server/storage';
+import { imagePipeline, validFormats, type ImageFormat } from '$lib/server/image';
 
-export const GET: RequestHandler = async ({ params, fetch }) => {
-	const file = await mediaRepository.findPublishedBySlug(params.slug);
-	if (!file) {
-		throw error(404, 'Media not found');
-	}
+type CooParams = {
+	width: number | undefined;
+	format: ImageFormat;
+};
 
-	// Build query params
-	const query = new URLSearchParams();
-
-	// Parse key/value segments from path: /coo/[slug]/w/480/f/jpeg
-	if (params.path) {
-		const segments = params.path.split('/');
+function parseCooPath(path: string): CooParams {
+	let widthParam: string | undefined;
+	let fmt = 'webp';
+	if (path) {
+		const segments = path.split('/');
 		for (let i = 0; i < segments.length - 1; i += 2) {
-			if (segments[i] === 'w') query.set('w', segments[i + 1]);
-			if (segments[i] === 'f') query.set('fmt', segments[i + 1]);
+			if (segments[i] === 'w') widthParam = segments[i + 1];
+			if (segments[i] === 'f') fmt = segments[i + 1];
 		}
 	}
+	if (!validFormats.includes(fmt as ImageFormat)) throw error(400, 'Invalid format');
+	const width = widthParam ? parseInt(widthParam, 10) : undefined;
+	if (width !== undefined && (isNaN(width) || width <= 0 || width > 4096)) throw error(400, 'Invalid width');
+	return { width, format: fmt as ImageFormat };
+}
 
-	// Add watermark params from settings
-	const settings = await settingsRepository.get();
-	if (settings.watermarkFileHash) {
-		query.set('wm', settings.watermarkFileHash);
-		query.set('wm_pos', settings.watermarkPosition);
-		query.set('wm_opacity', String(settings.watermarkOpacity));
-	}
+export const GET: RequestHandler = async ({ params }) => {
+	const { width, format } = parseCooPath(params.path ?? '');
 
-	const qs = query.toString();
-	const res = await fetch(`/file/${file.hash}${qs ? `?${qs}` : ''}`);
-	if (!res.ok) {
-		throw error(res.status, 'Failed to load file');
-	}
+	const [file, settings] = await Promise.all([
+		mediaRepository.findPublishedBySlug(params.slug),
+		settingsRepository.get()
+	]);
+	if (!file) throw error(404, 'Media not found');
 
-	return new Response(res.body, {
-		headers: {
-			'Content-Type': res.headers.get('Content-Type') ?? file.mimeType,
-			'Cache-Control': 'public, max-age=2592000'
-		}
+	const stream = await storage.get(file.path);
+	if (!stream) throw error(404, 'File not found in storage');
+
+	const buffer = Buffer.from(await new Response(stream).arrayBuffer());
+	const pipeline = await imagePipeline(buffer)
+		.format(format)
+		.resize(width)
+		.loadWatermark(
+			storage,
+			fileRepository,
+			settings.watermarkFileHash,
+			settings.watermarkOpacity,
+			settings.watermarkPosition
+		);
+
+	return new Response(await pipeline.toBuffer(), {
+		headers: { 'Content-Type': pipeline.mimeType, 'Cache-Control': 'public, max-age=2592000' }
 	});
 };

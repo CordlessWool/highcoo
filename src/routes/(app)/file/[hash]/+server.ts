@@ -2,8 +2,7 @@ import type { RequestHandler } from './$types';
 import { error } from '@sveltejs/kit';
 import { storage } from '$lib/server/storage';
 import { fileRepository } from '$lib/server/db/repositories';
-import { WatermarkPosition } from '$lib/logic/settings';
-import { imagePipeline, validFormats, mimeTypes, type ImageFormat } from '$lib/server/image';
+import { imagePipeline, validFormats, type ImageFormat } from '$lib/server/image';
 
 export const HEAD: RequestHandler = async ({ params }) => {
 	const file = await fileRepository.findByHash(params.hash);
@@ -39,41 +38,27 @@ export const GET: RequestHandler = async ({ params, url }) => {
 		});
 	}
 
-	// Validate width
 	const width = widthParam ? parseInt(widthParam, 10) : undefined;
 	if (width !== undefined && (isNaN(width) || width <= 0 || width > 4096)) {
 		throw error(400, 'Invalid width');
 	}
 
-	// Validate format
-	const fmtParam = url.searchParams.get('fmt') ?? 'webp';
-	if (!validFormats.includes(fmtParam as ImageFormat)) throw error(400, 'Invalid format');
+	const fmt = url.searchParams.get('fmt') ?? 'webp';
+	if (!validFormats.includes(fmt as ImageFormat)) throw error(400, 'Invalid format');
 
-	// Build pipeline
 	const buffer = Buffer.from(await new Response(stream).arrayBuffer());
-	const pipeline = imagePipeline(buffer).format(fmtParam as ImageFormat);
+	const pipeline = await imagePipeline(buffer)
+		.format(fmt as ImageFormat)
+		.resize(width)
+		.loadWatermark(
+			storage,
+			fileRepository,
+			wmHash,
+			parseFloat(url.searchParams.get('wm_opacity') ?? '0.5'),
+			url.searchParams.get('wm_pos') ?? ''
+		);
 
-	if (width) pipeline.resize(width);
-
-	if (wmHash) {
-		const wmFile = await fileRepository.findByHash(wmHash);
-		const wmStream = wmFile ? await storage.get(wmFile.path) : null;
-		if (wmStream) {
-			pipeline.watermark({
-				buffer: Buffer.from(await new Response(wmStream).arrayBuffer()),
-				opacity: parseFloat(url.searchParams.get('wm_opacity') ?? '0.5'),
-				position: (url.searchParams.get('wm_pos') ??
-					WatermarkPosition.BottomRight) as WatermarkPosition
-			});
-		}
-	}
-
-	const result = await pipeline.toBuffer();
-
-	return new Response(result, {
-		headers: {
-			'Content-Type': mimeTypes[fmtParam as ImageFormat],
-			'Cache-Control': 'private, max-age=31536000'
-		}
+	return new Response(await pipeline.toBuffer(), {
+		headers: { 'Content-Type': pipeline.mimeType, 'Cache-Control': 'private, max-age=31536000' }
 	});
 };

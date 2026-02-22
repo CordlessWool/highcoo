@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 import { WatermarkPosition } from '$lib/logic/settings';
+import type { StorageAdapter } from './storage/types';
+import type { FileRepository } from './db/repositories/types';
 
 export const validFormats = ['webp', 'jpeg', 'png', 'avif'] as const;
 export type ImageFormat = (typeof validFormats)[number];
@@ -45,25 +47,49 @@ class ImagePipeline {
 	private input: Buffer;
 	private _width?: number;
 	private _watermark?: WatermarkOptions;
-	private _format: ImageFormat = 'webp';
+	private _format?: ImageFormat;
 
 	constructor(input: Buffer) {
 		this.input = input;
 	}
 
-	resize(width: number): this {
-		this._width = width;
+	resize(width: number | null | undefined): this {
+		if (width != null) this._width = width;
 		return this;
 	}
 
-	watermark(opts: WatermarkOptions): this {
-		this._watermark = opts;
+	watermark(opts: WatermarkOptions | null | undefined): this {
+		if (opts != null) this._watermark = opts;
 		return this;
 	}
 
-	format(fmt: ImageFormat): this {
-		this._format = fmt;
+	async loadWatermark(
+		storage: StorageAdapter,
+		fileRepository: FileRepository,
+		hash: string | null | undefined,
+		opacity: number,
+		position: string
+	): Promise<this> {
+		if (!hash) return this;
+		const wmFile = await fileRepository.findByHash(hash);
+		const wmStream = wmFile ? await storage.get(wmFile.path) : null;
+		if (wmStream) {
+			this._watermark = {
+				buffer: Buffer.from(await new Response(wmStream).arrayBuffer()),
+				opacity,
+				position: position as WatermarkPosition
+			};
+		}
 		return this;
+	}
+
+	format(fmt: ImageFormat | null | undefined): this {
+		if (fmt != null) this._format = fmt;
+		return this;
+	}
+
+	getFormat(): ImageFormat {
+		return this._format ?? 'webp';
 	}
 
 	async toBuffer(): Promise<Buffer> {
@@ -82,12 +108,17 @@ class ImagePipeline {
 			image = image.composite([{ input: wmInput, gravity: gravityMap[this._watermark.position] }]);
 		}
 
+		const fmt = this.getFormat();
 		return (
-			this._format === 'jpeg' ? image.jpeg() :
-			this._format === 'png'  ? image.png()  :
-			this._format === 'avif' ? image.avif() :
-			                          image.webp()
+			fmt === 'jpeg' ? image.jpeg() :
+			fmt === 'png'  ? image.png()  :
+			fmt === 'avif' ? image.avif() :
+			                 image.webp()
 		).toBuffer();
+	}
+
+	get mimeType(): string {
+		return mimeTypes[this.getFormat()];
 	}
 }
 
