@@ -1,8 +1,31 @@
 import { chromium } from '@playwright/test';
+import { execSync } from 'child_process';
+import { rmSync } from 'fs';
+import postgres from 'postgres';
 
 const BASE_URL = 'http://localhost:4173';
+const DB_URL =
+	process.env.DATABASE_URL_TEST ?? 'postgresql://highcoo:highcoo@localhost:5432/highcoo_test';
+
+async function resetDb() {
+	// Apply schema migrations (no-op if already up to date)
+	execSync(`DATABASE_URL=${DB_URL} bun run db:migrate`, { stdio: 'inherit' });
+
+	// Truncate all tables for a clean slate
+	const sql = postgres(DB_URL);
+	await sql`
+		TRUNCATE "user", credential, session, file, media, tag, tag_content, media_tag, settings
+		RESTART IDENTITY CASCADE
+	`;
+	await sql.end();
+
+	// Clear test uploads folder
+	rmSync('./uploads-test', { recursive: true, force: true });
+}
 
 export default async function globalSetup() {
+	await resetDb();
+
 	const browser = await chromium.launch();
 	const context = await browser.newContext();
 	const page = await context.newPage();
