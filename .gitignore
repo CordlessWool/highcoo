@@ -32,3 +32,6 @@ project.inlang/cache/
 
 # Data
 uploads
+
+# E2E
+e2e/.auth.json
