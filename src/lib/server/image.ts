@@ -29,7 +29,9 @@ export type WatermarkOptions = {
 
 async function buildWatermark(opts: WatermarkOptions, imageWidth: number): Promise<Buffer> {
 	const wmWidth = Math.round(imageWidth * 0.2);
-	const resized = sharp(opts.buffer).resize(wmWidth, undefined, { withoutEnlargement: true }).ensureAlpha();
+	const resized = sharp(opts.buffer)
+		.resize(wmWidth, undefined, { withoutEnlargement: true })
+		.ensureAlpha();
 	const { data, info } = await resized.raw().toBuffer({ resolveWithObject: true });
 
 	if (opts.opacity < 1) {
@@ -110,10 +112,13 @@ class ImagePipeline {
 
 		const fmt = this.getFormat();
 		return (
-			fmt === 'jpeg' ? image.jpeg() :
-			fmt === 'png'  ? image.png()  :
-			fmt === 'avif' ? image.avif() :
-			                 image.webp()
+			fmt === 'jpeg'
+				? image.jpeg()
+				: fmt === 'png'
+					? image.png()
+					: fmt === 'avif'
+						? image.avif()
+						: image.webp()
 		).toBuffer();
 	}
 

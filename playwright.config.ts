@@ -22,7 +22,8 @@ export default defineConfig({
 		{
 			name: 'authenticated',
 			testMatch: '**/*.auth.test.ts',
-			use: { storageState: 'e2e/.auth.json' }
+			use: { storageState: 'e2e/.auth.json' },
+			dependencies: ['unauthenticated']
 		}
 	]
 });

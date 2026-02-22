@@ -37,6 +37,7 @@ async function uploadImage(page: Page): Promise<void> {
 
 test('upload image appears in grid', async ({ page }) => {
 	await page.goto(`${BASE_URL}/media`);
+	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
 
@@ -47,6 +48,7 @@ test('upload image appears in grid', async ({ page }) => {
 
 test('publish media via select mode', async ({ page }) => {
 	await page.goto(`${BASE_URL}/media`);
+	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
 
@@ -71,6 +73,7 @@ test('publish media via select mode', async ({ page }) => {
 
 test('delete media via select mode', async ({ page }) => {
 	await page.goto(`${BASE_URL}/media`);
+	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
 
@@ -88,8 +91,83 @@ test('delete media via select mode', async ({ page }) => {
 	await expect(mediaCards(page)).toHaveCount(before, { timeout: 5000 });
 });
 
+test('watermark is applied to /coo/ images when set', async ({ page, request }) => {
+	// seed-image-1 is a 200×200 solid blue image — good contrast with a solid red watermark.
+	// The watermark raises the red channel average, which we verify pixel-by-pixel.
+	const slug = 'seed-image-1';
+
+	// Extract the bottom-right 40×40 corner (where the watermark lands at southeast gravity)
+	// and average the red channel there.
+	async function avgRedCorner(buf: Buffer): Promise<number> {
+		const img = sharp(buf);
+		const { width = 200, height = 200 } = await img.metadata();
+		const size = Math.min(40, width, height);
+		const { data, info } = await img
+			.extract({ left: width - size, top: height - size, width: size, height: size })
+			.raw()
+			.toBuffer({ resolveWithObject: true });
+		const channels = info.channels;
+		let sum = 0;
+		for (let i = 0; i < data.length; i += channels) sum += data[i];
+		return sum / (data.length / channels);
+	}
+
+	// Ensure no stale watermark from a previous run
+	await page.goto(`${BASE_URL}/settings`);
+	const removeBtn = page.getByRole('button', { name: 'Remove' });
+	if (await removeBtn.isVisible()) {
+		await Promise.all([
+			page.waitForResponse((r) => r.url().includes('/_app/') && r.status() === 200),
+			removeBtn.click()
+		]);
+	}
+
+	// Baseline: fetch without watermark, both with and without resize
+	const beforeWithWidth = await (await request.get(`${BASE_URL}/coo/${slug}/w/200`)).body();
+	const beforeNoWidth = await (await request.get(`${BASE_URL}/coo/${slug}`)).body();
+	const redBeforeWithWidth = await avgRedCorner(beforeWithWidth);
+	const redBeforeNoWidth = await avgRedCorner(beforeNoWidth);
+
+	// Upload a solid red PNG as watermark — maximally raises red channel vs blue source
+	const wmBuffer = await sharp({
+		create: { width: 200, height: 200, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 1 } }
+	})
+		.png()
+		.toBuffer();
+
+	const [fileChooser] = await Promise.all([
+		page.waitForEvent('filechooser'),
+		page.locator('input[type="file"]').evaluate((el) => (el as HTMLInputElement).click())
+	]);
+	await Promise.all([
+		page.waitForResponse((r) => r.url().includes('/_app/') && r.status() === 200),
+		fileChooser.setFiles({ name: 'wm.png', mimeType: 'image/png', buffer: wmBuffer })
+	]);
+
+	// With resize: watermark must be applied
+	const afterWithWidth = await request.get(`${BASE_URL}/coo/${slug}/w/200`);
+	expect(afterWithWidth.ok()).toBe(true);
+	expect(afterWithWidth.headers()['content-type']).toMatch(/^image\//);
+	const redAfterWithWidth = await avgRedCorner(await afterWithWidth.body());
+	expect(redAfterWithWidth).toBeGreaterThan(redBeforeWithWidth + 10);
+
+	// Without resize: watermark must also be applied
+	const afterNoWidth = await request.get(`${BASE_URL}/coo/${slug}`);
+	expect(afterNoWidth.ok()).toBe(true);
+	expect(afterNoWidth.headers()['content-type']).toMatch(/^image\//);
+	const redAfterNoWidth = await avgRedCorner(await afterNoWidth.body());
+	expect(redAfterNoWidth).toBeGreaterThan(redBeforeNoWidth + 10);
+
+	// Clean up — remove watermark after test
+	await Promise.all([
+		page.waitForResponse((r) => r.url().includes('/_app/') && r.status() === 200),
+		page.getByRole('button', { name: 'Remove' }).click()
+	]);
+});
+
 test('restore deleted media via toast undo', async ({ page }) => {
 	await page.goto(`${BASE_URL}/media`);
+	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
 
@@ -108,26 +186,3 @@ test('restore deleted media via toast undo', async ({ page }) => {
 	await expect(mediaCards(page)).toHaveCount(before + 1, { timeout: 5000 });
 });
 
-test('/coo/[slug]/w/480 serves image for published media', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
-
-	const res = await page.evaluate(() => fetch('/pub/media').then((r) => r.json()));
-
-	if (res.items.length === 0) {
-		test.skip();
-		return;
-	}
-
-	const slug = res.items[0].slug;
-	const response = await page.evaluate(
-		(s) =>
-			fetch(`/coo/${s}/w/480`).then((r) => ({
-				status: r.status,
-				type: r.headers.get('content-type')
-			})),
-		slug
-	);
-
-	expect(response.status).toBe(200);
-	expect(response.type).toMatch(/^image\//);
-});
