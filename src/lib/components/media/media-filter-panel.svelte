@@ -25,31 +25,29 @@
 
 	const MAX_TAGS = 10;
 
-	// Selected tags always fetched without a search filter so they always show
-	const selectedTagsResult = $derived(await getTags({ pagination: { limit: 100 } }));
-
-	// Search results from server, re-fetches when tagSearch changes
-	const searchResults = $derived(
-		await getTags({
-			filter: tagSearch ? { search: tagSearch } : undefined,
-			pagination: { limit: MAX_TAGS }
+	const visibleTags = $derived(
+		await Promise.all([
+			getTags({ pagination: { limit: 100 } }),
+			getTags({
+				filter: tagSearch ? { search: tagSearch } : undefined,
+				pagination: { limit: MAX_TAGS }
+			})
+		]).then(([selectedResult, searchResult]) => {
+			const selected = selectedResult.items.filter((t) => tagIds.includes(t.id));
+			const remaining = MAX_TAGS - selected.length;
+			const unselected = searchResult.items
+				.filter((t) => !tagIds.includes(t.id))
+				.slice(0, remaining);
+			return [...selected, ...unselected];
 		})
 	);
 
-	const visibleTags = $derived.by(() => {
-		const selected = selectedTagsResult.items.filter((t) => tagIds.includes(t.id));
-		const remaining = MAX_TAGS - selected.length;
-		const unselected = searchResults.items
-			.filter((t) => !tagIds.includes(t.id))
-			.slice(0, remaining);
-		return [...selected, ...unselected];
-	});
-
 	function toggleStatus(value: string) {
-		const next = status.includes(value)
-			? status.filter((v) => v !== value)
-			: [...status, value];
-		onfilterchange({ ...filter, status: next.length ? (next as MediaFilter['status']) : undefined });
+		const next = status.includes(value) ? status.filter((v) => v !== value) : [...status, value];
+		onfilterchange({
+			...filter,
+			status: next.length ? (next as MediaFilter['status']) : undefined
+		});
 	}
 
 	function toggleTag(id: string) {

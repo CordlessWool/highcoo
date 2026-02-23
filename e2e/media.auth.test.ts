@@ -165,6 +165,34 @@ test('watermark is applied to /coo/ images when set', async ({ page, request }) 
 	]);
 });
 
+test('drag to select range in select mode', async ({ page }) => {
+	await page.goto(`${BASE_URL}/media`);
+	await page.waitForLoadState('networkidle');
+
+	// Ensure at least 3 images exist
+	let count = await mediaCards(page).count();
+	while (count < 3) {
+		await uploadImage(page);
+		count++;
+		await expect(mediaCards(page)).toHaveCount(count, { timeout: 10000 });
+	}
+
+	await page.getByRole('button', { name: 'Select' }).click();
+
+	// Drag from first card to third card
+	const first = mediaCards(page).first();
+	const third = mediaCards(page).nth(2);
+	const firstBox = await first.boundingBox();
+	const thirdBox = await third.boundingBox();
+
+	await page.mouse.move(firstBox!.x + firstBox!.width / 2, firstBox!.y + firstBox!.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(thirdBox!.x + thirdBox!.width / 2, thirdBox!.y + thirdBox!.height / 2, { steps: 10 });
+	await page.mouse.up();
+
+	await expect(page.getByText('3 selected')).toBeVisible();
+});
+
 test('restore deleted media via toast undo', async ({ page }) => {
 	await page.goto(`${BASE_URL}/media`);
 	await page.waitForLoadState('networkidle');
