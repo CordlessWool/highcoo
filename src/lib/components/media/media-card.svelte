@@ -15,7 +15,7 @@
 	const isLandscape = id.charCodeAt(0) + id.charCodeAt(id.length - 1) + id.charCodeAt(4) > 200;
 </script>
 
-<div class="relative grid aspect-square content-center justify-center">
+<div class="relative grid aspect-square content-center justify-center" data-media-id={id}>
 	<svelte:boundary>
 		{@const media = await getMedia(id)}
 		<button

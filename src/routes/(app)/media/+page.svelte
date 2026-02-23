@@ -115,20 +115,28 @@
 				<Empty />
 			</div>
 		{:else}
-			<Media.Grid {ids} {focusedId} {selectedIds} class="mx-3">
-				{#snippet children({ id, isFocused, isSelected })}
-					{#if isFocused}
-						<MediaEditCard
-							{id}
-							onclose={() => (focusedId = null)}
-							ondelete={handleDelete}
-							onrestore={handleRestore}
-						/>
-					{:else}
-						<MediaCard {id} {isSelected} onclick={() => handleSelect(id)} />
-					{/if}
-				{/snippet}
-			</Media.Grid>
+			<Media.DragSelect
+				{ids}
+				active={selectMode}
+				{selectedIds}
+				onrangeselect={(rangeIds) => { for (const id of rangeIds) selectedIds.add(id); }}
+				onrangedeselect={(rangeIds) => { for (const id of rangeIds) selectedIds.delete(id); }}
+			>
+				<Media.Grid {ids} {focusedId} {selectedIds} class="mx-3">
+					{#snippet children({ id, isFocused, isSelected })}
+						{#if isFocused}
+							<MediaEditCard
+								{id}
+								onclose={() => (focusedId = null)}
+								ondelete={handleDelete}
+								onrestore={handleRestore}
+							/>
+						{:else}
+							<MediaCard {id} {isSelected} onclick={() => handleSelect(id)} />
+						{/if}
+					{/snippet}
+				</Media.Grid>
+			</Media.DragSelect>
 		{/if}
 	</main>
 

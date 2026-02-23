@@ -5,5 +5,6 @@ import Card from './media-card.svelte';
 import EditCard from './media-edit-card.svelte';
 import Grid from './media-grid.svelte';
 import Toolbar from './media-toolbar.svelte';
+import DragSelect from './drag-select.svelte';
 
-export { UploadButton, Modal, DeleteButton, Card, EditCard, Grid, Toolbar };
+export { UploadButton, Modal, DeleteButton, Card, EditCard, Grid, Toolbar, DragSelect };
