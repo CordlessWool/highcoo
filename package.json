@@ -1,7 +1,7 @@
 {
 	"name": "highcoo",
 	"private": true,
-	"version": "0.0.1",
+	"version": "1.1.1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
@@ -21,6 +21,7 @@
 		"db:studio": "drizzle-kit studio"
 	},
 	"devDependencies": {
+		"@changesets/cli": "^2.29.8",
 		"@eslint/compat": "^2.0.2",
 		"@eslint/js": "^9.39.3",
 		"@inlang/paraglide-js": "^2.12.0",
