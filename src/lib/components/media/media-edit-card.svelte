@@ -8,33 +8,18 @@
 	import SlugInput from './slug-input.svelte';
 	import MediaTagInput from './media-tag-input.svelte';
 	import { patchMedia, getMedia, publishMedia } from './media.remote';
-	import type { Media } from '$lib/server/db/repositories/types';
 
 	type Props = {
-		selectedIds: string[];
+		id: string;
 		onclose: () => void;
 		ondelete?: (ids: string[]) => void;
 		onrestore?: (ids: string[]) => void;
 	};
 
-	let { selectedIds, onclose, ondelete, onrestore }: Props = $props();
+	let { id, onclose, ondelete, onrestore }: Props = $props();
 
-	const restIds = $derived(selectedIds.slice(1));
-
-	// Reactive per-item fetch — updates when getMedia cache changes via .set()
-	const items = $derived(
-		(await Promise.all(selectedIds.map((id) => getMedia(id)))).filter((m): m is Media => m !== null)
-	);
-
-	const primaryMedia = $derived(items[0] ?? null);
-	const primarySrc = $derived(
-		primaryMedia ? resolve('/(app)/file/[hash]', { hash: primaryMedia.fileHash }) : null
-	);
-	const nameSame = $derived(items.every((m) => m.name === items[0]?.name));
-	const descSame = $derived(
-		items.every((m) => (m.description ?? '') === (items[0]?.description ?? ''))
-	);
-	const anyDirty = $derived(items.some((m) => m.dirty));
+	const media = $derived(await getMedia(id));
+	const src = $derived(media ? resolve('/(app)/file/[hash]', { hash: media.fileHash }) : null);
 
 	let isHorizontal = $state(false);
 
@@ -50,35 +35,19 @@
 	class:md:flex-row={!isHorizontal}
 	class:flex-col={true}
 >
-	<!-- Image + thumbnails -->
+	<!-- Image -->
 	<div
 		class="flex h-48 shrink-0 flex-col bg-muted md:h-auto"
 		class:md:h-[55%]={isHorizontal}
 		class:md:w-[60%]={!isHorizontal}
 	>
-		{#if primarySrc}
+		{#if src}
 			<img
-				src="{primarySrc}?w=900"
-				alt={primaryMedia?.name ?? ''}
-				class="min-h-0 flex-1 object-cover"
-				class:w-full={true}
+				src="{src}?w=900"
+				alt={media?.name ?? ''}
+				class="min-h-0 w-full flex-1 object-cover"
 				onload={onImageLoad}
 			/>
-		{/if}
-		{#if restIds.length > 0}
-			<div class="grid" class:grid-cols-7={isHorizontal} class:grid-cols-5={!isHorizontal}>
-				{#each restIds as id (id)}
-					{@const thumbMedia = items.find((m) => m.id === id)}
-					{#if thumbMedia}
-						{@const thumbSrc = resolve('/(app)/file/[hash]', { hash: thumbMedia.fileHash })}
-						<img
-							src="{thumbSrc}?w=160"
-							alt={thumbMedia.name}
-							class="aspect-square w-full object-cover ring-2 ring-primary"
-						/>
-					{/if}
-				{/each}
-			</div>
 		{/if}
 	</div>
 
@@ -89,8 +58,8 @@
 	<div class="flex min-w-0 flex-1 flex-col bg-card">
 		<Card.Root class="flex h-full flex-col rounded-none border-0 shadow-none">
 			<Card.Header class="flex flex-row items-center justify-between gap-2">
-				{#if anyDirty}
-					<Button variant="outline" size="sm" onclick={() => publishMedia(selectedIds)}>
+				{#if media?.dirty}
+					<Button variant="outline" size="sm" onclick={() => publishMedia([id])}>
 						<Send class="h-4 w-4" />
 						Publish
 					</Button>
@@ -106,35 +75,37 @@
 				<div class={isHorizontal ? 'grid grid-cols-1 gap-4 md:grid-cols-2' : 'flex flex-col gap-4'}>
 					<Form.Input
 						label="Name"
-						value={nameSame ? (items[0]?.name ?? '') : ''}
-						placeholder={!nameSame ? 'Different names' : 'Name'}
+						value={media?.name ?? ''}
+						placeholder="Name"
 						onsave={async (val) => {
-							await Promise.all(items.map((m) => patchMedia({ id: m.id, name: val })));
+							await patchMedia({ id, name: val });
 						}}
 					/>
 
-					<SlugInput
-						selected={items}
-						onsave={async (slugs) => {
-							await Promise.all(slugs.map(({ id, slug }) => patchMedia({ id, slug })));
-						}}
-					/>
+					{#if media}
+						<SlugInput
+							selected={[media]}
+							onsave={async (slugs) => {
+								await Promise.all(slugs.map(({ id: sid, slug }) => patchMedia({ id: sid, slug })));
+							}}
+						/>
+					{/if}
 
 					<Form.Textarea
 						label="Description"
-						value={descSame ? (items[0]?.description ?? '') : ''}
-						placeholder={!descSame ? 'Different descriptions' : 'Description'}
+						value={media?.description ?? ''}
+						placeholder="Description"
 						onsave={async (val) => {
-							await Promise.all(items.map((m) => patchMedia({ id: m.id, description: val })));
+							await patchMedia({ id, description: val });
 						}}
 					/>
 
-					<MediaTagInput label="Tags" mediaIds={items.map((m) => m.id)} />
+					<MediaTagInput label="Tags" mediaIds={[id]} />
 				</div>
 			</Card.Content>
 			<Card.Footer class="justify-end">
 				<DeleteButton
-					selected={selectedIds}
+					selected={[id]}
 					ondelete={(ids) => {
 						ondelete?.(ids);
 						onclose();

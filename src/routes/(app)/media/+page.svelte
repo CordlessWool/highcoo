@@ -21,6 +21,7 @@
 	let { data }: PageProps = $props();
 
 	let selectMode = $state(false);
+	let focusedId = $state<string | null>(null);
 	let filter = $state<MediaFilter>({});
 	let ids = $state<string[]>(data.init.items);
 	let cursor = $state<string | null>(data.init.pagination.cursor ?? null);
@@ -65,22 +66,19 @@
 		load(null);
 	}
 
-	function handleSelect(id: string, e: MouseEvent) {
-		if (selectMode || e.shiftKey || e.ctrlKey || e.metaKey) {
-			if (selectedIds.has(id)) {
-				selectedIds.delete(id);
-			} else {
-				selectedIds.add(id);
-			}
+	function handleSelect(id: string) {
+		if (selectMode) {
+			if (selectedIds.has(id)) selectedIds.delete(id);
+			else selectedIds.add(id);
 		} else {
-			selectedIds.clear();
-			selectedIds.add(id);
+			focusedId = focusedId === id ? null : id;
 		}
 	}
 
 	function handleDelete(deletedIds: string[]) {
 		const deletedSet = new Set(deletedIds);
 		ids = ids.filter((id) => !deletedSet.has(id));
+		if (focusedId && deletedSet.has(focusedId)) focusedId = null;
 		selectedIds.clear();
 	}
 
@@ -100,8 +98,8 @@
 				{selectMode}
 				selectedIds={selectedList}
 				{filter}
-				onenterselect={() => (selectMode = true)}
-				onexitselect={() => { selectMode = false; selectedIds.clear(); }}
+				onenterselect={() => { selectMode = true; focusedId = null; }}
+				onexitselect={() => { selectMode = false; selectedIds.clear(); focusedId = null; }}
 				onpublish={handlePublish}
 				ondelete={handleDelete}
 				onrestore={handleRestore}
@@ -117,17 +115,17 @@
 				<Empty />
 			</div>
 		{:else}
-			<Media.Grid {ids} {selectedIds} {selectMode} class="mx-3">
-				{#snippet children({ id, isPrimary, isSelected })}
-					{#if isPrimary}
+			<Media.Grid {ids} {focusedId} {selectedIds} class="mx-3">
+				{#snippet children({ id, isFocused, isSelected })}
+					{#if isFocused}
 						<MediaEditCard
-							selectedIds={selectedList}
-							onclose={() => selectedIds.clear()}
+							{id}
+							onclose={() => (focusedId = null)}
 							ondelete={handleDelete}
 							onrestore={handleRestore}
 						/>
 					{:else}
-						<MediaCard {id} {isSelected} onclick={(e) => handleSelect(id, e)} />
+						<MediaCard {id} {isSelected} onclick={() => handleSelect(id)} />
 					{/if}
 				{/snippet}
 			</Media.Grid>
