@@ -16,7 +16,7 @@
 
 	let startId = $state<string | null>(null);
 	let deselecting = $state(false);
-	let snapshot = new Set<string>();
+	let snapshot = new SvelteSet<string>();
 	let previousRange = new SvelteSet<string>();
 	let container = $state<HTMLDivElement | null>(null);
 
@@ -38,7 +38,7 @@
 	}
 
 	function applyRange(range: string[]) {
-		const currentRange = new Set(range);
+		const currentRange = new SvelteSet(range);
 
 		// Items that left the range — restore to their snapshot state
 		for (const id of previousRange) {
@@ -68,7 +68,7 @@
 		if (!id) return;
 		startId = id;
 		deselecting = selectedIds.has(id);
-		snapshot = new Set(selectedIds);
+		snapshot = new SvelteSet(selectedIds);
 		previousRange.clear();
 
 		applyRange([id]);

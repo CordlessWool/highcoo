@@ -7,7 +7,6 @@
 	import {
 		getMediaIds,
 		getCurrentMediaIds,
-		getMedia,
 		publishMedia
 	} from '$lib/components/media/media.remote';
 
@@ -16,7 +15,6 @@
 	import { MEDIA_PAGE_LIMIT } from '$lib/logic/pagination';
 	import type { PageProps } from './$types';
 	import type { MediaFilter } from '$lib/logic/media';
-
 
 	let { data }: PageProps = $props();
 
@@ -41,7 +39,10 @@
 	async function load(cursorValue: string | null) {
 		loading = true;
 		try {
-			const result = await getMediaIds({ filter: getFilter(), pagination: { limit: MEDIA_PAGE_LIMIT, cursor: cursorValue } });
+			const result = await getMediaIds({
+				filter: getFilter(),
+				pagination: { limit: MEDIA_PAGE_LIMIT, cursor: cursorValue }
+			});
 			ids = cursorValue === null ? result.items : [...ids, ...result.items];
 			cursor = result.pagination.cursor ?? null;
 			hasMore = result.pagination.cursor !== null;
@@ -101,13 +102,23 @@
 				{selectMode}
 				selectedIds={selectedList}
 				{filter}
-				onenterselect={() => { selectMode = true; focusedId = null; }}
-				onexitselect={() => { selectMode = false; selectedIds.clear(); focusedId = null; }}
+				onenterselect={() => {
+					selectMode = true;
+					focusedId = null;
+				}}
+				onexitselect={() => {
+					selectMode = false;
+					selectedIds.clear();
+					focusedId = null;
+				}}
 				onpublish={handlePublish}
 				ondelete={handleDelete}
 				onrestore={handleRestore}
 				onfilterchange={handleFilterChange}
-				onsettovisible={(kept) => { selectedIds.clear(); for (const id of kept) selectedIds.add(id); }}
+				onsettovisible={(kept) => {
+					selectedIds.clear();
+					for (const id of kept) selectedIds.add(id);
+				}}
 			/>
 		</Layout.BaseBar>
 
@@ -122,8 +133,12 @@
 				{ids}
 				active={selectMode}
 				{selectedIds}
-				onrangeselect={(rangeIds) => { for (const id of rangeIds) selectedIds.add(id); }}
-				onrangedeselect={(rangeIds) => { for (const id of rangeIds) selectedIds.delete(id); }}
+				onrangeselect={(rangeIds) => {
+					for (const id of rangeIds) selectedIds.add(id);
+				}}
+				onrangedeselect={(rangeIds) => {
+					for (const id of rangeIds) selectedIds.delete(id);
+				}}
 			>
 				<Media.Grid {ids} {focusedId} {selectedIds} class="mx-3">
 					{#snippet children({ id, isFocused, isSelected })}
