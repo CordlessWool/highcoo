@@ -12,7 +12,7 @@
 	const { id, isSelected, onclick }: Props = $props();
 
 	// Deterministic pseudo-random from id — stable across renders
-	const isLandscape = id.charCodeAt(0) + id.charCodeAt(id.length - 1) + id.charCodeAt(4) > 200;
+	const isLandscape = $derived(id.charCodeAt(0) + id.charCodeAt(id.length - 1) + id.charCodeAt(4) > 200);
 </script>
 
 <div class="relative grid aspect-square content-center justify-center" data-media-id={id}>

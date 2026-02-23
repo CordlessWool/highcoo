@@ -16,6 +16,7 @@
 	let status = $state(SaveStatus.Idle);
 	let errorMessage = $state('');
 
+	// svelte-ignore state_referenced_locally
 	const save = debounce(async (val: string) => {
 		status = SaveStatus.Saving;
 		errorMessage = '';

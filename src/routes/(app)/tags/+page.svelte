@@ -19,9 +19,12 @@
 	let expandedId = $state<string | null>(null);
 	let creating = $state(false);
 
+	// svelte-ignore state_referenced_locally
 	let ids = $state<string[]>(data.init.items);
+	// svelte-ignore state_referenced_locally
 	let cursor = $state<string | null>(data.init.pagination.cursor ?? null);
 	let loading = $state(false);
+	// svelte-ignore state_referenced_locally
 	let hasMore = $state(data.init.pagination.cursor !== null);
 
 	function getFilter() {
