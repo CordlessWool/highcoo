@@ -208,10 +208,8 @@ test('drag back deselects items that left the range', async ({ page }) => {
 	await page.getByRole('button', { name: 'Select' }).click();
 
 	const first = mediaCards(page).first();
-	const second = mediaCards(page).nth(1);
 	const third = mediaCards(page).nth(2);
 	const firstBox = await first.boundingBox();
-	const secondBox = await second.boundingBox();
 	const thirdBox = await third.boundingBox();
 
 	// Drag from first to third, then back to first (without releasing)
