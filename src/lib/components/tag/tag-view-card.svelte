@@ -10,7 +10,7 @@
 
 	let { tag, onclick }: Props = $props();
 
-	const hasContent = tag.hasDraft || tag.isPublished;
+	const hasContent = $derived(tag.hasDraft || tag.isPublished);
 </script>
 
 <button class="row-span-1 grid h-full w-full items-stretch text-left" {onclick}>

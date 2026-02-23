@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [Test]
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      tag: ${{ steps.push_tags.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push tag if version is new
+        id: push_tags
+        run: |
+          set +e
+          TAG=$(jq -r .version < package.json)
+          if git ls-remote --exit-code --tags origin "refs/tags/v$TAG" >/dev/null; then
+            echo "Tag v$TAG already exists, skipping"
+          else
+            git tag "v$TAG"
+            git push origin "v$TAG"
+            echo "tag=v$TAG" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  call-docker-push:
+    needs: release
+    if: needs.release.outputs.tag != ''
+    uses: ./.github/workflows/docker-publish.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit

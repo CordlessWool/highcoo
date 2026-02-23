@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
+	import { SvelteSet } from 'svelte/reactivity';
 
 	type Props = {
 		ids: string[];
@@ -15,6 +16,8 @@
 
 	let startId = $state<string | null>(null);
 	let deselecting = $state(false);
+	let snapshot = new SvelteSet<string>();
+	let previousRange = new SvelteSet<string>();
 	let container = $state<HTMLDivElement | null>(null);
 
 	function getMediaId(el: Element | null): string | null {
@@ -34,12 +37,42 @@
 		return ids.slice(lo, hi + 1);
 	}
 
+	function applyRange(range: string[]) {
+		const currentRange = new SvelteSet(range);
+
+		// Items that left the range — restore to their snapshot state
+		for (const id of previousRange) {
+			if (currentRange.has(id)) continue;
+			const wasSelected = snapshot.has(id);
+			if (wasSelected) onrangeselect([id]);
+			else onrangedeselect([id]);
+		}
+
+		// Items in the current range — apply the drag operation
+		const toSelect: string[] = [];
+		const toDeselect: string[] = [];
+		for (const id of range) {
+			if (deselecting) toDeselect.push(id);
+			else toSelect.push(id);
+		}
+		if (toSelect.length) onrangeselect(toSelect);
+		if (toDeselect.length) onrangedeselect(toDeselect);
+
+		previousRange.clear();
+		for (const id of range) previousRange.add(id);
+	}
+
 	function onpointerdown(e: PointerEvent) {
 		if (!active || e.button !== 0) return;
 		const id = getMediaId(e.target as Element);
 		if (!id) return;
 		startId = id;
 		deselecting = selectedIds.has(id);
+		snapshot = new SvelteSet(selectedIds);
+		previousRange.clear();
+
+		applyRange([id]);
+
 		container?.setPointerCapture(e.pointerId);
 		e.preventDefault();
 	}
@@ -49,13 +82,13 @@
 		const el = document.elementFromPoint(e.clientX, e.clientY);
 		const currentId = getMediaId(el);
 		if (!currentId) return;
-		const range = getRange(startId, currentId);
-		if (deselecting) onrangedeselect(range);
-		else onrangeselect(range);
+
+		applyRange(getRange(startId, currentId));
 	}
 
 	function onpointerup(e: PointerEvent) {
 		startId = null;
+		previousRange.clear();
 		container?.releasePointerCapture(e.pointerId);
 	}
 </script>

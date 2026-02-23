@@ -58,7 +58,7 @@ export const GET: RequestHandler = async ({ params, url }) => {
 			url.searchParams.get('wm_pos') ?? ''
 		);
 
-	return new Response(await pipeline.toBuffer(), {
+	return new Response(new Uint8Array(await pipeline.toBuffer()), {
 		headers: { 'Content-Type': pipeline.mimeType, 'Cache-Control': 'private, max-age=31536000' }
 	});
 };
