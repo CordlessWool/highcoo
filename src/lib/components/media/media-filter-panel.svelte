@@ -3,7 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { ListFilter, Check } from '@lucide/svelte';
 	import { getTags } from '$lib/components/tag/tags.remote';
-	import { MediaStatusValues, type MediaFilter } from '$lib/logic/media';
+	import { MediaStatusValues, type MediaFilter, type MediaStatus } from '$lib/logic/media';
 
 	type Props = {
 		filter: MediaFilter;
@@ -42,12 +42,9 @@
 		})
 	);
 
-	function toggleStatus(value: string) {
+	function toggleStatus(value: MediaStatus) {
 		const next = status.includes(value) ? status.filter((v) => v !== value) : [...status, value];
-		onfilterchange({
-			...filter,
-			status: next.length ? (next as MediaFilter['status']) : undefined
-		});
+		onfilterchange({ ...filter, status: next.length ? next : undefined });
 	}
 
 	function toggleTag(id: string) {

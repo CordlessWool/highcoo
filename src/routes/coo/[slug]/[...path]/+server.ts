@@ -49,7 +49,7 @@ export const GET: RequestHandler = async ({ params }) => {
 			settings.watermarkPosition
 		);
 
-	return new Response(await pipeline.toBuffer(), {
+	return new Response(new Uint8Array(await pipeline.toBuffer()), {
 		headers: { 'Content-Type': pipeline.mimeType, 'Cache-Control': 'public, max-age=2592000' }
 	});
 };
