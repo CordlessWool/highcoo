@@ -56,6 +56,7 @@ COPY --from=prerelease /usr/src/app/drizzle.config.ts .
 COPY --from=prerelease /usr/src/app/drizzle ./drizzle
 
 ENV PORT=3001
+ENV BODY_SIZE_LIMIT=Infinity
 
 EXPOSE 3001/tcp
 
