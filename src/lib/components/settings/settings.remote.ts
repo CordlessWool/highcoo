@@ -4,6 +4,7 @@ import { createSHA256 } from 'hash-wasm';
 import { query, command, form } from '$app/server';
 import { settingsRepository, fileRepository } from '$lib/server/db/repositories';
 import { storage } from '$lib/server/storage';
+import { deleteFile } from '$lib/server/files';
 import type { Settings } from '$lib/server/db/schema';
 import { WatermarkPosition } from '$lib/logic/settings';
 
@@ -12,14 +13,6 @@ const PartialSettings = v.object({
 	watermarkPosition: v.optional(v.enum(WatermarkPosition)),
 	watermarkOpacity: v.optional(v.number())
 });
-
-async function deleteWatermarkFile(hash: string) {
-	const file = await fileRepository.findByHash(hash);
-	if (file) {
-		await storage.delete(file.path);
-		await fileRepository.delete(hash);
-	}
-}
 
 export const getSettings = query(async (): Promise<Settings> => {
 	return settingsRepository.get();
@@ -31,14 +24,18 @@ export const patchSettings = command(PartialSettings, async (data) => {
 	getSettings().set(updated);
 });
 
-export const removeWatermark = command(async () => {
+async function clearWatermark() {
 	const settings = await settingsRepository.get();
 	if (settings.watermarkFileHash) {
-		const hash = settings.watermarkFileHash;
 		await settingsRepository.patch({ watermarkFileHash: null });
-		await deleteWatermarkFile(hash);
+		await deleteFile(settings.watermarkFileHash, { storage, fileRepository });
 	}
-	await getSettings().refresh();
+}
+
+export const removeWatermark = command(async () => {
+	await clearWatermark();
+	const updated = await settingsRepository.get();
+	getSettings().set(updated);
 });
 
 export const uploadWatermark = form(
@@ -46,15 +43,8 @@ export const uploadWatermark = form(
 		file: v.pipe(v.file(), v.mimeType(['image/png', 'image/webp', 'image/svg+xml']))
 	}),
 	async ({ file }) => {
-		// Clear old watermark reference before deleting file
-		const settings = await settingsRepository.get();
-		const oldHash = settings.watermarkFileHash;
-		if (oldHash) {
-			await settingsRepository.patch({ watermarkFileHash: null });
-			await deleteWatermarkFile(oldHash);
-		}
+		await clearWatermark();
 
-		// Hash and store new file
 		const buffer = await file.arrayBuffer();
 		const hasher = await createSHA256();
 		hasher.update(new Uint8Array(buffer));
@@ -69,6 +59,7 @@ export const uploadWatermark = form(
 		}
 
 		await settingsRepository.patch({ watermarkFileHash: hash });
-		await getSettings().refresh();
+		const updated = await settingsRepository.get();
+		getSettings().set(updated);
 	}
 );

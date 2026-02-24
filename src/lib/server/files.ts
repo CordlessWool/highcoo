@@ -46,3 +46,13 @@ export const saveFile = async (fileData: FileData, services: Services) => {
 export const fileExists = async (hash: string, services: Services): Promise<boolean> => {
 	return services.fileRepository.exists(hash);
 };
+
+type DeleteServices = Pick<Services, 'storage' | 'fileRepository'>;
+
+export const deleteFile = async (hash: string, services: DeleteServices): Promise<void> => {
+	const file = await services.fileRepository.findByHash(hash);
+	if (file) {
+		await services.storage.delete(file.path);
+		await services.fileRepository.delete(hash);
+	}
+};

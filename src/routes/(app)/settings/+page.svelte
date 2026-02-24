@@ -69,47 +69,39 @@
 					</div>
 				{/if}
 
-				<div class="flex flex-col gap-2">
+				<form {...uploadWatermark} enctype="multipart/form-data" class="flex flex-col gap-2">
+					<input
+						{...uploadWatermark.fields.file.as('file')}
+						accept="image/png,image/webp,image/svg+xml"
+						class="hidden"
+						bind:this={fileInputRef}
+						onchange={(e) => e.currentTarget.form?.requestSubmit()}
+					/>
 					{#if settings.watermarkFileHash}
-						<form {...uploadWatermark} enctype="multipart/form-data" class="contents">
-							<input
-								{...uploadWatermark.fields.file.as('file')}
-								accept="image/png,image/webp,image/svg+xml"
-								class="hidden"
-								bind:this={fileInputRef}
-								onchange={(e) => e.currentTarget.form?.requestSubmit()}
-							/>
-							<Button variant="outline" size="sm" onclick={() => fileInputRef?.click()}>
-								<Replace class="mr-2 h-4 w-4" />
-								Replace
-							</Button>
-						</form>
 						<Button
 							variant="outline"
 							size="sm"
-							onclick={async () => {
-								await removeWatermark();
-								settings.watermarkFileHash = null;
-							}}
+							type="button"
+							onclick={() => fileInputRef?.click()}
 						>
+							<Replace class="mr-2 h-4 w-4" />
+							Replace
+						</Button>
+						<Button variant="outline" size="sm" type="button" onclick={() => removeWatermark()}>
 							<Trash2 class="mr-2 h-4 w-4" />
 							Remove
 						</Button>
 					{:else}
-						<form {...uploadWatermark} enctype="multipart/form-data" class="contents">
-							<input
-								{...uploadWatermark.fields.file.as('file')}
-								accept="image/png,image/webp,image/svg+xml"
-								class="hidden"
-								bind:this={fileInputRef}
-								onchange={(e) => e.currentTarget.form?.requestSubmit()}
-							/>
-							<Button variant="outline" size="sm" onclick={() => fileInputRef?.click()}>
-								Add watermark
-							</Button>
-						</form>
+						<Button
+							variant="outline"
+							size="sm"
+							type="button"
+							onclick={() => fileInputRef?.click()}
+						>
+							Add watermark
+						</Button>
 					{/if}
-				</div>
+				</form>
 			</div>
 
 			{#if settings.watermarkFileHash}
