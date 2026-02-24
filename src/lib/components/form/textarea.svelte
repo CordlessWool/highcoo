@@ -11,7 +11,7 @@
 		info?: string;
 	};
 
-	let { label, onsave, delay = 500, info, ...props }: Props = $props();
+	let { label, onsave, value = $bindable(), delay = 500, info, oninput, ...props }: Props = $props();
 
 	let status = $state(SaveStatus.Idle);
 	let errorMessage = $state('');
@@ -30,6 +30,7 @@
 	}, delay);
 
 	const handleInput = (e: Event) => {
+		oninput?.(e as Event & { currentTarget: HTMLTextAreaElement });
 		const { value } = e.target as HTMLTextAreaElement;
 		if (status === SaveStatus.Error) {
 			status = SaveStatus.Idle;
@@ -45,7 +46,7 @@
 			<InputGroup.Label>{label}</InputGroup.Label>
 			<Indicator class="ms-auto" bind:status {info} />
 		</InputGroup.Addon>
-		<InputGroup.Textarea oninput={handleInput} placeholder={label} {...props} />
+		<InputGroup.Textarea bind:value oninput={handleInput} placeholder={label} {...props} />
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
 		<p class="text-xs text-destructive">{errorMessage}</p>

@@ -105,9 +105,10 @@ export const patchTagContent = command(PartialTagContent, async ({ id, tagId, ..
 	try {
 		await tagContentRepository.patch(id, data);
 		const cached = await getTagContent(tagId);
-		if (cached) getTagContent(tagId).set({ ...cached, ...data, dirty: true });
+		if (cached && !cached.dirty) getTagContent(tagId).set({ ...cached, dirty: true });
 		const cachedStatus = await getTagWithStatus(tagId);
-		if (cachedStatus) getTagWithStatus(tagId).set({ ...cachedStatus, isDirty: true });
+		if (cachedStatus && !cachedStatus.isDirty)
+			getTagWithStatus(tagId).set({ ...cachedStatus, isDirty: true });
 	} catch (err: unknown) {
 		if (err instanceof UniqueConstraintError) error(409, 'Slug is already taken');
 		throw err;
