@@ -56,27 +56,28 @@
 	<Field.Separator />
 
 	{#await getTagContent(tag.id) then content}
-		<Field.Set>
-			<div class="flex items-center justify-between">
-				<div>
-					<Field.Legend>Public Content</Field.Legend>
-					<Field.Description>Visible on the public API after publishing</Field.Description>
+		{#if content}
+			{@const contentId = content.id}
+			<Field.Set>
+				<div class="flex items-center justify-between">
+					<div>
+						<Field.Legend>Public Content</Field.Legend>
+						<Field.Description>Visible on the public API after publishing</Field.Description>
+					</div>
+					{#if content.dirty}
+						<Button variant="outline" size="sm" onclick={handlePublish}>
+							<Send class="h-4 w-4" />
+							Publish
+						</Button>
+					{/if}
 				</div>
-				{#if content?.dirty}
-					<Button variant="outline" size="sm" onclick={handlePublish}>
-						<Send class="h-4 w-4" />
-						Publish
-					</Button>
-				{/if}
-			</div>
 
-			<Field.Group>
-				{#if content}
+				<Field.Group>
 					<Form.Input
 						label="Title"
 						value={content.title ?? ''}
 						onsave={async (title) => {
-							await patchTagContent({ id: content.id, tagId: tag.id, title: title || null });
+							await patchTagContent({ id: contentId, tagId: tag.id, title: title || null });
 						}}
 					/>
 
@@ -84,7 +85,7 @@
 						label="Slug"
 						value={content.slug}
 						onsave={async (slug) => {
-							await patchTagContent({ id: content.id, tagId: tag.id, slug });
+							await patchTagContent({ id: contentId, tagId: tag.id, slug });
 						}}
 					/>
 
@@ -93,19 +94,25 @@
 						value={content.description ?? ''}
 						onsave={async (description) => {
 							await patchTagContent({
-								id: content.id,
+								id: contentId,
 								tagId: tag.id,
 								description: description || null
 							});
 						}}
 					/>
-				{:else}
-					<Button variant="outline" size="sm" onclick={handleCreateContent}>
-						<Plus class="h-4 w-4" />
-						Add content
-					</Button>
-				{/if}
-			</Field.Group>
-		</Field.Set>
+				</Field.Group>
+			</Field.Set>
+		{:else}
+			<Field.Set>
+				<div>
+					<Field.Legend>Public Content</Field.Legend>
+					<Field.Description>Visible on the public API after publishing</Field.Description>
+				</div>
+				<Button variant="outline" size="sm" onclick={handleCreateContent}>
+					<Plus class="h-4 w-4" />
+					Add content
+				</Button>
+			</Field.Set>
+		{/if}
 	{/await}
 </Field.Group>
