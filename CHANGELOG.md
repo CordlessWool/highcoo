@@ -1,5 +1,14 @@
 # highcoo
 
+## 1.2.3
+
+### Patch Changes
+
+- 3e6e26b: Switch Docker runtime from Bun to Node.js to fix file upload validation. Bun's `instanceof File` bypasses JS proxy traps, causing `v.file()` validation to fail for SvelteKit's `LazyFile`. Running the built app under Node resolves this. Also optimized dependencies: moved bundleable packages to devDependencies, keeping only `sharp`, `@simplewebauthn/server`, and `drizzle-kit` as runtime dependencies.
+- 11ac8b3: Fix watermark upload failing in Bun runtime
+
+  `v.file()` from valibot uses `instanceof File` which fails in Bun because Bun's native type checks bypass the JS prototype chain, so SvelteKit's `LazyFile` proxy (which tricks Node.js via `getPrototypeOf`) does not work. Replaced with a duck-type validator that checks for file-like properties (`name`, `type`, `size`, `arrayBuffer`).
+
 ## 1.2.2
 
 ### Patch Changes
