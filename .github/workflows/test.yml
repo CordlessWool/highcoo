@@ -33,33 +33,28 @@ jobs:
           docker run -d \
             --name highcoo-app \
             --network host \
-            --health-cmd "wget -qO- http://localhost:3001 || exit 1" \
-            --health-interval 5s \
-            --health-timeout 3s \
-            --health-retries 20 \
             -e DATABASE_URL=postgresql://highcoo:highcoo@localhost:5432/highcoo_test \
             -e BODY_SIZE_LIMIT=Infinity \
             -e ORIGIN=http://localhost:3001 \
             -e ALLOW_REGISTRATION=true \
             highcoo:ci
 
-      - name: Wait for app to be healthy
+      - name: Wait for app to be ready
         run: |
           for i in $(seq 1 10); do
-            status=$(docker inspect --format='{{.State.Health.Status}}' highcoo-app 2>/dev/null)
-            echo "Health status: $status ($i)"
-            if [ "$status" = "healthy" ]; then
-              echo "App is ready"
-              exit 0
-            fi
             if [ "$(docker inspect --format='{{.State.Status}}' highcoo-app)" = "exited" ]; then
               echo "Container exited unexpectedly" >&2
               docker logs highcoo-app >&2
               exit 1
             fi
+            if curl -sf http://localhost:3001 > /dev/null 2>&1; then
+              echo "App is ready"
+              exit 0
+            fi
+            echo "Waiting... ($i)"
             sleep 5
           done
-          echo "App did not become healthy in time" >&2
+          echo "App did not become ready in time" >&2
           docker logs highcoo-app >&2
           exit 1
 
