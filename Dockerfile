@@ -1,22 +1,12 @@
 # Use the official Node.js LTS image
 # See all versions at https://hub.docker.com/_/node
-FROM oven/bun AS base
+FROM oven/bun AS build-base
 WORKDIR /usr/src/app
 
-RUN apt-get update && \
-    apt-get install -y cron curl && \
-    rm -rf /var/lib/apt/lists/*
-
-
-RUN echo "* */24 * * * root curl -s https://localhost:${PORT:=3001}/cleanup > /var/log/cron.log 2>&1" > /etc/cron.d/cleanup && \
-    chmod 0644 /etc/cron.d/cleanup && \
-    touch /var/log/cron.log && \
-    chown root:root /var/log/cron.log && \
-    chmod 644 /var/log/cron.log
 
 # Install dependencies into temp directory
 # This will cache them and speed up future builds
-FROM base AS install
+FROM build-base AS install
 
 RUN mkdir -p /temp/dev
 COPY package.json bun.lock /temp/dev/
@@ -29,7 +19,7 @@ RUN cd /temp/prod && bun i --only=production
 
 # Copy node_modules from temp directory
 # Then copy all (non-ignored) project files into the image
-FROM base AS prerelease
+FROM build-base AS prerelease
 
 ENV UPLOAD_PATH=/uploads
 
@@ -42,7 +32,9 @@ ENV NODE_ENV=production
 RUN bun run build
 
 # Copy production dependencies and source code into final image
-FROM node:25-alpine AS release
+FROM node:lts-alpine AS runtime
+
+RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /usr/src/app/build .
