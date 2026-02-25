@@ -14,9 +14,6 @@ RUN echo "* */24 * * * root curl -s https://localhost:${PORT:=3001}/cleanup > /v
     chown root:root /var/log/cron.log && \
     chmod 644 /var/log/cron.log
 
-FROM base AS bun
-RUN curl -fsSL https://bun.sh/install | bash
-
 # Install dependencies into temp directory
 # This will cache them and speed up future builds
 FROM base AS install
@@ -45,9 +42,7 @@ ENV NODE_ENV=production
 RUN bun run build
 
 # Copy production dependencies and source code into final image
-FROM base AS release
-
-USER root
+FROM node:25-alpine AS release
 
 COPY --from=install /temp/prod/node_modules node_modules
 COPY --from=prerelease /usr/src/app/build .
@@ -58,14 +53,14 @@ COPY --from=prerelease /usr/src/app/drizzle ./drizzle
 ENV PORT=3001
 ENV BODY_SIZE_LIMIT=Infinity
 
-RUN mkdir -p /uploads && chown bun:bun /uploads
+RUN mkdir -p /uploads && chown node:node /uploads
 
 EXPOSE 3001/tcp
 
 COPY --chmod=755 <<EOT /entrypoint.sh
-#!/usr/bin/env bash
+#!/bin/sh
 set -e
-exec su bun -c "bunx drizzle-kit migrate --config=drizzle.config.ts && bun ./index.js"
+npm run db:migrate --config=drizzle.config.ts && node ./index.js
 EOT
 
 ENTRYPOINT ["/entrypoint.sh"]
