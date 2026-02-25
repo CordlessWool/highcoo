@@ -3,14 +3,12 @@
 	import { locales, localizeHref } from '$lib/paraglide/runtime';
 	import { ModeWatcher } from 'mode-watcher';
 	import './layout.css';
-	import favicon from '$lib/assets/favicon.svg';
-
 	let { children } = $props();
 </script>
 
 <svelte:head>
 	<title>highcoo</title>
-	<link rel="icon" href={favicon} />
+	<link rel="icon" type="image/png" href="/logo.png" />
 </svelte:head>
 
 <ModeWatcher />
