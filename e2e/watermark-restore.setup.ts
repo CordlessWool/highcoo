@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
 
 const FIXTURES = path.join(import.meta.dirname, 'fixtures');

@@ -34,6 +34,8 @@ RUN bun run build
 # Copy production dependencies and source code into final image
 FROM node:lts-alpine AS runtime
 
+WORKDIR /usr/src/app
+
 RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 
 COPY --from=install /temp/prod/node_modules node_modules

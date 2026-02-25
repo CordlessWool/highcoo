@@ -39,9 +39,14 @@ jobs:
             -e ALLOW_REGISTRATION=true \
             highcoo:ci
 
-      - name: Wait for app to be healthy
+      - name: Wait for app to be ready
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 10); do
+            if [ "$(docker inspect --format='{{.State.Status}}' highcoo-app)" = "exited" ]; then
+              echo "Container exited unexpectedly" >&2
+              docker logs highcoo-app >&2
+              exit 1
+            fi
             if curl -sf http://localhost:3001 > /dev/null 2>&1; then
               echo "App is ready"
               exit 0
@@ -49,7 +54,7 @@ jobs:
             echo "Waiting... ($i)"
             sleep 5
           done
-          echo "App did not become healthy in time" >&2
+          echo "App did not become ready in time" >&2
           docker logs highcoo-app >&2
           exit 1
 
