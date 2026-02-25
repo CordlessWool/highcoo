@@ -38,25 +38,9 @@ export const removeWatermark = command(async () => {
 	getSettings().set(updated);
 });
 
-const ALLOWED_WATERMARK_TYPES = ['image/png', 'image/webp', 'image/svg+xml'];
-
-const filelike = v.custom<File>(
-	(v) =>
-		v !== null &&
-		typeof v === 'object' &&
-		typeof (v as File).name === 'string' &&
-		typeof (v as File).type === 'string' &&
-		typeof (v as File).size === 'number' &&
-		typeof (v as File).arrayBuffer === 'function',
-	'Expected File'
-);
-
 export const uploadWatermark = form(
 	v.object({
-		watermark: v.pipe(
-			filelike,
-			v.check((f) => ALLOWED_WATERMARK_TYPES.includes(f.type), 'Invalid file type')
-		)
+		watermark: v.pipe(v.file(), v.mimeType(['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']))
 	}),
 	async ({ watermark: file }) => {
 		await clearWatermark();
