@@ -6,9 +6,10 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+
     services:
       postgres:
-        image: postgres:18
+        image: postgres:18-alpine
         env:
           POSTGRES_USER: highcoo
           POSTGRES_PASSWORD: highcoo
@@ -17,21 +18,60 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
+
+      - name: Build app image
+        run: docker build -t highcoo:ci .
+
+      - name: Start app container
+        run: |
+          docker run -d \
+            --name highcoo-app \
+            --network host \
+            -e DATABASE_URL=postgresql://highcoo:highcoo@localhost:5432/highcoo_test \
+            -e BODY_SIZE_LIMIT=Infinity \
+            -e ORIGIN=http://localhost:3001 \
+            -e ALLOW_REGISTRATION=true \
+            highcoo:ci
+
+      - name: Wait for app to be healthy
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3001 > /dev/null 2>&1; then
+              echo "App is ready"
+              exit 0
+            fi
+            echo "Waiting... ($i)"
+            sleep 5
+          done
+          echo "App did not become healthy in time" >&2
+          docker logs highcoo-app >&2
+          exit 1
+
       - uses: oven-sh/setup-bun@v2
+
       - name: Install dependencies
         run: bun install
+
       - name: Install Playwright browsers
         run: bunx playwright install --with-deps chromium
+
       - name: Run e2e tests
         run: bun run test:e2e
         env:
           CI: true
+          BASE_URL: 'http://localhost:3001'
           DATABASE_URL_TEST: postgresql://highcoo:highcoo@localhost:5432/highcoo_test
+
+      - name: Print app logs on failure
+        if: failure()
+        run: docker logs highcoo-app
+
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:

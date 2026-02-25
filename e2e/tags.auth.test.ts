@@ -1,9 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:4173';
-
 test('create tag appears in list', async ({ page }) => {
-	await page.goto(`${BASE_URL}/tags`);
+	await page.goto('/tags');
 
 	const tagName = `Tag-${Date.now()}`;
 
