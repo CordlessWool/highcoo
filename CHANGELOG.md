@@ -1,5 +1,11 @@
 # highcoo
 
+## 1.2.4
+
+### Patch Changes
+
+- d643df2: Fix WORKDIR in Docker runtime stage and add container health check to CI
+
 ## 1.2.3
 
 ### Patch Changes
