@@ -1,14 +1,12 @@
 import { test, expect } from '@playwright/test';
 import sharp from 'sharp';
 
-const BASE_URL = 'http://localhost:4173';
-
 // Two published media items are seeded in global-setup.ts with these slugs
 const SEED_SLUG_1 = 'seed-image-1';
 const SEED_SLUG_2 = 'seed-image-2';
 
 test('/pub/media returns valid shape', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/media`);
+	const res = await request.get('/pub/media');
 	expect(res.ok()).toBe(true);
 
 	const body = await res.json();
@@ -25,7 +23,7 @@ test('/pub/media returns valid shape', async ({ request }) => {
 });
 
 test('/pub/media/[slug] returns correct shape for seeded item', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/media/${SEED_SLUG_1}`);
+	const res = await request.get(`/pub/media/${SEED_SLUG_1}`);
 	expect(res.ok()).toBe(true);
 
 	const body = await res.json();
@@ -36,12 +34,12 @@ test('/pub/media/[slug] returns correct shape for seeded item', async ({ request
 });
 
 test('/pub/media/[slug] returns 404 for unknown slug', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/media/__nonexistent__`);
+	const res = await request.get('/pub/media/__nonexistent__');
 	expect(res.status()).toBe(404);
 });
 
 test('/pub/media respects ?limit param', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/media?limit=1`);
+	const res = await request.get('/pub/media?limit=1');
 	expect(res.ok()).toBe(true);
 
 	const body = await res.json();
@@ -51,7 +49,7 @@ test('/pub/media respects ?limit param', async ({ request }) => {
 
 test('/pub/media pagination cursor advances to next page', async ({ request }) => {
 	// Two seeded items guarantee at least 2 published items
-	const first = await request.get(`${BASE_URL}/pub/media?limit=1`);
+	const first = await request.get('/pub/media?limit=1');
 	expect(first.ok()).toBe(true);
 	const firstBody = await first.json();
 	expect(firstBody.items.length).toBe(1);
@@ -59,7 +57,7 @@ test('/pub/media pagination cursor advances to next page', async ({ request }) =
 	const cursor = firstBody.pagination?.cursor;
 	expect(cursor).toBeTruthy();
 
-	const second = await request.get(`${BASE_URL}/pub/media?limit=1&cursor=${cursor}`);
+	const second = await request.get(`/pub/media?limit=1&cursor=${cursor}`);
 	expect(second.ok()).toBe(true);
 	const secondBody = await second.json();
 	expect(secondBody.items.length).toBeGreaterThanOrEqual(1);
@@ -67,7 +65,7 @@ test('/pub/media pagination cursor advances to next page', async ({ request }) =
 });
 
 test('/pub/tags returns valid shape', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/tags`);
+	const res = await request.get('/pub/tags');
 	expect(res.ok()).toBe(true);
 
 	const body = await res.json();
@@ -76,7 +74,7 @@ test('/pub/tags returns valid shape', async ({ request }) => {
 });
 
 test('/pub/tags respects ?limit param', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/tags?limit=1`);
+	const res = await request.get('/pub/tags?limit=1');
 	expect(res.ok()).toBe(true);
 
 	const body = await res.json();
@@ -84,12 +82,12 @@ test('/pub/tags respects ?limit param', async ({ request }) => {
 });
 
 test('/pub/tags/[slug] returns 404 for unknown slug', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/pub/tags/__nonexistent__`);
+	const res = await request.get('/pub/tags/__nonexistent__');
 	expect(res.status()).toBe(404);
 });
 
 test('/coo/[slug]/w/480 serves image bytes for seeded media', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/coo/${SEED_SLUG_1}/w/480`);
+	const res = await request.get(`/coo/${SEED_SLUG_1}/w/480`);
 	expect(res.ok()).toBe(true);
 	expect(res.headers()['content-type']).toMatch(/^image\//);
 	const body = await res.body();
@@ -97,7 +95,7 @@ test('/coo/[slug]/w/480 serves image bytes for seeded media', async ({ request }
 });
 
 test('/coo/[slug]/w/1080 serves image bytes for seeded media', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/coo/${SEED_SLUG_2}/w/1080`);
+	const res = await request.get(`/coo/${SEED_SLUG_2}/w/1080`);
 	expect(res.ok()).toBe(true);
 	expect(res.headers()['content-type']).toMatch(/^image\//);
 	const body = await res.body();
@@ -105,7 +103,7 @@ test('/coo/[slug]/w/1080 serves image bytes for seeded media', async ({ request 
 });
 
 test('/coo/[slug]/w/480 returns 404 for unknown slug', async ({ request }) => {
-	const res = await request.get(`${BASE_URL}/coo/__nonexistent__/w/480`);
+	const res = await request.get('/coo/__nonexistent__/w/480');
 	expect(res.status()).toBe(404);
 });
 
@@ -125,11 +123,11 @@ test('/coo/[slug] applies seeded watermark without authentication', async ({ req
 
 	// The seeded watermark is solid red at full opacity — the bottom-right corner of the
 	// solid blue source image should have a red channel average well above ~100 (no watermark).
-	const withWidth = await request.get(`${BASE_URL}/coo/${SEED_SLUG_1}/w/200`);
+	const withWidth = await request.get(`/coo/${SEED_SLUG_1}/w/200`);
 	expect(withWidth.ok()).toBe(true);
 	expect(await avgRedCorner(await withWidth.body())).toBeGreaterThan(200);
 
-	const noWidth = await request.get(`${BASE_URL}/coo/${SEED_SLUG_1}`);
+	const noWidth = await request.get(`/coo/${SEED_SLUG_1}`);
 	expect(noWidth.ok()).toBe(true);
 	expect(await avgRedCorner(await noWidth.body())).toBeGreaterThan(200);
 });

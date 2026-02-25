@@ -4,8 +4,6 @@ import sharp from 'sharp';
 // Run serially — tests share the same user/DB and upload counts would race in parallel
 test.describe.configure({ mode: 'serial' });
 
-const BASE_URL = 'http://localhost:4173';
-
 // Generate a unique PNG per call so the SHA-256 hash is always new (avoids DUPLICATE path)
 async function tinyPngBuffer(): Promise<Buffer> {
 	const r = Math.floor(Math.random() * 256);
@@ -36,7 +34,7 @@ async function uploadImage(page: Page): Promise<void> {
 }
 
 test('upload image appears in grid', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
@@ -47,7 +45,7 @@ test('upload image appears in grid', async ({ page }) => {
 });
 
 test('publish media via select mode', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
@@ -72,7 +70,7 @@ test('publish media via select mode', async ({ page }) => {
 });
 
 test('delete media via select mode', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();
@@ -113,7 +111,7 @@ test('watermark is applied to /coo/ images when set', async ({ page, request }) 
 	}
 
 	// Ensure no stale watermark from a previous run
-	await page.goto(`${BASE_URL}/settings`);
+	await page.goto('/settings');
 	const removeBtn = page.getByRole('button', { name: 'Remove' });
 	if (await removeBtn.isVisible()) {
 		await Promise.all([
@@ -123,8 +121,8 @@ test('watermark is applied to /coo/ images when set', async ({ page, request }) 
 	}
 
 	// Baseline: fetch without watermark, both with and without resize
-	const beforeWithWidth = await (await request.get(`${BASE_URL}/coo/${slug}/w/200`)).body();
-	const beforeNoWidth = await (await request.get(`${BASE_URL}/coo/${slug}`)).body();
+	const beforeWithWidth = await (await request.get(`/coo/${slug}/w/200`)).body();
+	const beforeNoWidth = await (await request.get(`/coo/${slug}`)).body();
 	const redBeforeWithWidth = await avgRedCorner(beforeWithWidth);
 	const redBeforeNoWidth = await avgRedCorner(beforeNoWidth);
 
@@ -145,14 +143,14 @@ test('watermark is applied to /coo/ images when set', async ({ page, request }) 
 	]);
 
 	// With resize: watermark must be applied
-	const afterWithWidth = await request.get(`${BASE_URL}/coo/${slug}/w/200`);
+	const afterWithWidth = await request.get(`/coo/${slug}/w/200`);
 	expect(afterWithWidth.ok()).toBe(true);
 	expect(afterWithWidth.headers()['content-type']).toMatch(/^image\//);
 	const redAfterWithWidth = await avgRedCorner(await afterWithWidth.body());
 	expect(redAfterWithWidth).toBeGreaterThan(redBeforeWithWidth + 10);
 
 	// Without resize: watermark must also be applied
-	const afterNoWidth = await request.get(`${BASE_URL}/coo/${slug}`);
+	const afterNoWidth = await request.get(`/coo/${slug}`);
 	expect(afterNoWidth.ok()).toBe(true);
 	expect(afterNoWidth.headers()['content-type']).toMatch(/^image\//);
 	const redAfterNoWidth = await avgRedCorner(await afterNoWidth.body());
@@ -166,7 +164,7 @@ test('watermark is applied to /coo/ images when set', async ({ page, request }) 
 });
 
 test('drag to select range in select mode', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	// Ensure at least 3 images exist
@@ -194,7 +192,7 @@ test('drag to select range in select mode', async ({ page }) => {
 });
 
 test('drag back deselects items that left the range', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	// Ensure at least 3 images exist
@@ -224,7 +222,7 @@ test('drag back deselects items that left the range', async ({ page }) => {
 });
 
 test('drag back preserves previously selected items', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	// Ensure at least 4 images exist
@@ -259,7 +257,7 @@ test('drag back preserves previously selected items', async ({ page }) => {
 });
 
 test('restore deleted media via toast undo', async ({ page }) => {
-	await page.goto(`${BASE_URL}/media`);
+	await page.goto('/media');
 	await page.waitForLoadState('networkidle');
 
 	const before = await mediaCards(page).count();

@@ -1,9 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:4173';
-
-test('register then login with passkey', async ({ browser }) => {
-	const context = await browser.newContext();
+test('register then login with passkey', async ({ browser, baseURL }) => {
+	const context = await browser.newContext({ baseURL });
 	const page = await context.newPage();
 
 	// Enable virtual WebAuthn authenticator on this page's CDP session
@@ -20,18 +18,18 @@ test('register then login with passkey', async ({ browser }) => {
 	});
 
 	// Register
-	await page.goto(`${BASE_URL}/auth/login`);
+	await page.goto('/auth/login');
 	await page.getByRole('button', { name: 'Register a new passkey' }).click();
-	await page.waitForURL(`${BASE_URL}/media`);
+	await page.waitForURL('/media');
 
 	// Logout
 	await page.evaluate(() => fetch('/auth/logout', { method: 'POST', redirect: 'manual' }));
-	await page.goto(`${BASE_URL}/auth/login`);
-	await expect(page).toHaveURL(`${BASE_URL}/auth/login`);
+	await page.goto('/auth/login');
+	await expect(page).toHaveURL('/auth/login');
 
 	// Login with the same passkey
 	await page.getByRole('button', { name: 'Sign in with passkey' }).click();
-	await page.waitForURL(`${BASE_URL}/media`);
+	await page.waitForURL('/media');
 
 	await context.close();
 });

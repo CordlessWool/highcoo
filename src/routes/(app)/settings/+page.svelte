@@ -71,7 +71,7 @@
 
 				<form {...uploadWatermark} enctype="multipart/form-data" class="flex flex-col gap-2">
 					<input
-						{...uploadWatermark.fields.file.as('file')}
+						{...uploadWatermark.fields.watermark.as('file')}
 						accept="image/png,image/webp,image/svg+xml"
 						class="hidden"
 						bind:this={fileInputRef}

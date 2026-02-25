@@ -58,6 +58,8 @@ COPY --from=prerelease /usr/src/app/drizzle ./drizzle
 ENV PORT=3001
 ENV BODY_SIZE_LIMIT=Infinity
 
+RUN mkdir -p /uploads && chown bun:bun /uploads
+
 EXPOSE 3001/tcp
 
 COPY --chmod=755 <<EOT /entrypoint.sh

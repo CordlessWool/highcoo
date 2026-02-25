@@ -3,12 +3,10 @@ import sharp from 'sharp';
 
 test.describe.configure({ mode: 'serial' });
 
-const BASE_URL = 'http://localhost:4173';
-
 test('watermark upload via settings page stores file and shows preview controls', async ({
 	page
 }) => {
-	await page.goto(`${BASE_URL}/settings`);
+	await page.goto('/settings');
 
 	// Remove any existing watermark so we start from a clean slate
 	const removeBtn = page.getByRole('button', { name: 'Remove' });
@@ -17,6 +15,8 @@ test('watermark upload via settings page stores file and shows preview controls'
 			page.waitForResponse((r) => r.url().includes('/_app/') && r.status() === 200),
 			removeBtn.click()
 		]);
+		// Wait for UI to reflect removal
+		await expect(page.getByRole('button', { name: 'Add watermark' })).toBeVisible();
 	}
 
 	// No watermark: position/opacity controls must be hidden
@@ -54,7 +54,7 @@ test('watermark upload via settings page stores file and shows preview controls'
 });
 
 test('watermark opacity is persisted after save', async ({ page }) => {
-	await page.goto(`${BASE_URL}/settings`);
+	await page.goto('/settings');
 
 	// Ensure clean state
 	const removeBtn = page.getByRole('button', { name: 'Remove' });
@@ -63,6 +63,7 @@ test('watermark opacity is persisted after save', async ({ page }) => {
 			page.waitForResponse((r) => r.url().includes('/_app/') && r.status() === 200),
 			removeBtn.click()
 		]);
+		await expect(page.getByRole('button', { name: 'Add watermark' })).toBeVisible();
 	}
 
 	// Upload a watermark
