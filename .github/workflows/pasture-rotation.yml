@@ -1,0 +1,111 @@
+name: Pasture Rotation
+
+on:
+  workflow_dispatch:
+    inputs:
+      docker_image_tag:
+        description: "Highcoo Docker image tag to deploy"
+        required: false
+        default: "main"
+
+concurrency:
+  group: pasture-rotation
+  cancel-in-progress: false
+
+env:
+  TF_VAR_hetzner_token: ${{ secrets.HETZNER_TOKEN }}
+  TF_VAR_ssh_key_id: ${{ secrets.PASTURE_SSH_KEY_ID }}
+  TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+  TF_VAR_postgres_password: ${{ secrets.PASTURE_POSTGRES_PASSWORD }}
+  TF_VAR_rp_id: ${{ secrets.PASTURE_RP_ID }}
+  TF_VAR_origin: ${{ secrets.PASTURE_ORIGIN }}
+  TF_VAR_docker_image_tag: ${{ github.event.inputs.docker_image_tag || 'main' }}
+  # Backend credentials (if using S3-compatible remote state)
+  AWS_ACCESS_KEY_ID: ${{ secrets.TOFU_STATE_ACCESS_KEY }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.TOFU_STATE_SECRET_KEY }}
+
+jobs:
+  rotate:
+    name: Rotate pasture VM
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.9.0"
+
+      - name: Install Hetzner CLI (hcloud) for cleanup
+        run: |
+          curl -sSL \
+            https://github.com/hetznercloud/cli/releases/latest/download/hcloud-linux-amd64.tar.gz \
+            | tar -xz hcloud
+          sudo mv hcloud /usr/local/bin/hcloud
+
+      - name: Record existing pasture servers (pre-rotation)
+        id: pre
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_TOKEN }}
+        run: |
+          OLD_IDS=$(hcloud server list -o columns=id,name | awk '/^[0-9]+ +pasture-/{print $1}' | tr '\n' ' ')
+          echo "old_ids=${OLD_IDS}" >> "$GITHUB_OUTPUT"
+          echo "Old pasture server IDs: ${OLD_IDS:-none}"
+
+      - name: OpenTofu init
+        working-directory: infra/pasture
+        run: tofu init
+
+      - name: OpenTofu validate
+        working-directory: infra/pasture
+        run: tofu validate
+
+      - name: OpenTofu plan
+        working-directory: infra/pasture
+        run: tofu plan -out=tfplan
+
+      - name: OpenTofu apply
+        working-directory: infra/pasture
+        run: tofu apply -auto-approve tfplan
+
+      - name: Wait for app to become healthy
+        working-directory: infra/pasture
+        run: |
+          SERVER_IP=$(tofu output -raw server_ipv6)
+          echo "Verifying Highcoo is reachable at http://${SERVER_IP} ..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+              "http://${SERVER_IP}" 2>/dev/null || echo "000")
+            echo "  attempt $i: HTTP $STATUS"
+            if [[ "$STATUS" == "200" || "$STATUS" == "301" || "$STATUS" == "302" ]]; then
+              echo "Healthy!"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check failed after 5 minutes." >&2
+          exit 1
+
+      - name: Destroy old pasture servers
+        if: steps.pre.outputs.old_ids != ''
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HETZNER_TOKEN }}
+        run: |
+          for ID in ${{ steps.pre.outputs.old_ids }}; do
+            echo "Deleting old pasture server ID=${ID} ..."
+            hcloud server delete "$ID"
+          done
+
+      - name: Output deployment info
+        working-directory: infra/pasture
+        run: |
+          echo "### Pasture rotation complete" >> "$GITHUB_STEP_SUMMARY"
+          tofu output -json | jq -r '
+            "| Output | Value |",
+            "|--------|-------|",
+            (to_entries[] | "| \(.key) | \(.value.value) |")
+          ' >> "$GITHUB_STEP_SUMMARY"
