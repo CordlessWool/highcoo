@@ -1,0 +1,132 @@
+#cloud-config
+
+write_files:
+  - path: /etc/sysctl.d/80-unprivileged-ports.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      net.ipv4.ip_unprivileged_port_start=80
+
+  - path: /etc/containers/registries.conf.d/00-unqualified.conf
+    owner: root:root
+    permissions: '0644'
+    content: |
+      unqualified-search-registries = ["docker.io"]
+
+  - path: /home/pasture/app/Caddyfile
+    owner: root:root
+    permissions: '0644'
+    content: |
+      {
+        auto_https off
+      }
+
+      :80 {
+        reverse_proxy app:3001
+      }
+
+      :443 {
+        tls /etc/caddy/cert.pem /etc/caddy/key.pem
+        reverse_proxy app:3001
+      }
+
+  - path: /home/pasture/app/docker-compose.yml
+    owner: root:root
+    permissions: '0644'
+    content: |
+      services:
+        caddy:
+          image: docker.io/caddy:alpine
+          restart: unless-stopped
+          profiles: [prod]
+          ports:
+            - "80:80"
+            - "443:443"
+          volumes:
+            - ./Caddyfile:/etc/caddy/Caddyfile:ro
+            - ./cert.pem:/etc/caddy/cert.pem:ro
+            - ./key.pem:/etc/caddy/key.pem:ro
+            - caddy_data:/data
+            - caddy_config:/config
+          depends_on:
+            - app
+
+        app:
+          image: docker.io/cordlesswool/highcoo:${docker_image_tag}
+          restart: unless-stopped
+          profiles: [prod]
+          expose:
+            - "3001"
+          environment:
+            DATABASE_URL: postgres://highcoo:$${POSTGRES_PASSWORD}@db:5432/highcoo
+            BODY_SIZE_LIMIT: "Infinity"
+            RP_ID: $${RP_ID}
+            ORIGIN: $${ORIGIN}
+            ALLOW_REGISTRATION: "true"
+          depends_on:
+            db:
+              condition: service_healthy
+          volumes:
+            - uploads:/app/uploads
+
+        db:
+          image: docker.io/postgres:18-alpine
+          restart: unless-stopped
+          profiles: [prod]
+          environment:
+            POSTGRES_USER: highcoo
+            POSTGRES_DB: highcoo
+            POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
+          volumes:
+            - pgdata:/var/lib/postgresql/data
+          healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U highcoo"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+      volumes:
+        pgdata:
+        uploads:
+        caddy_data:
+        caddy_config:
+
+  - path: /home/pasture/app/.env
+    owner: root:root
+    permissions: '0600'
+    content: |
+      POSTGRES_PASSWORD=${postgres_password}
+      RP_ID=${rp_id}
+      ORIGIN=${origin}
+
+runcmd:
+  # Update system and install packages
+  - dnf -y update
+  - dnf -y install podman podman-compose firewalld
+
+  # Create pasture user
+  - useradd -m -s /bin/bash pasture
+
+  # Apply unprivileged port setting
+  - sysctl -w net.ipv4.ip_unprivileged_port_start=80
+
+  # Enable firewall; allow HTTP and HTTPS
+  - systemctl enable --now firewalld
+  - firewall-cmd --permanent --add-service=http
+  - firewall-cmd --permanent --add-service=https
+  - firewall-cmd --reload
+
+  # Fix ownership (write_files runs as root before user exists)
+  - chown -R pasture:pasture /home/pasture
+
+  # Enable lingering for rootless podman on boot
+  - loginctl enable-linger pasture
+
+  # Generate self-signed cert for Caddy
+  - openssl req -x509 -newkey rsa:4096 -keyout /home/pasture/app/key.pem -out /home/pasture/app/cert.pem -sha256 -days 3650 -nodes -subj "/CN=pasture"
+  - chown pasture:pasture /home/pasture/app/cert.pem /home/pasture/app/key.pem
+  - chmod 600 /home/pasture/app/key.pem
+
+  # Pull & start as pasture user
+  - su -l pasture -c "cd ~/app && podman compose --profile prod pull"
+  - su -l pasture -c "cd ~/app && podman compose --profile prod up -d"

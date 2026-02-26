@@ -30,6 +30,13 @@ project.inlang/cache/
 # SQLite
 *.db
 
+# Terraform / OpenTofu
+*.tfvars
+*.tfvars.json
+**/.terraform/
+*.tfstate
+*.tfstate.*
+
 # Data
 uploads
 

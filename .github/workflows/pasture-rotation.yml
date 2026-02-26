@@ -1,9 +1,6 @@
 name: Pasture Rotation
 
 on:
-  schedule:
-    # Run every night at 02:00 UTC
-    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       docker_image_tag:
@@ -17,10 +14,9 @@ concurrency:
 
 env:
   TF_VAR_hetzner_token: ${{ secrets.HETZNER_TOKEN }}
-  TF_VAR_ssh_public_key: ${{ secrets.PASTURE_SSH_PUBLIC_KEY }}
-  TF_VAR_ssh_private_key: ${{ secrets.PASTURE_SSH_PRIVATE_KEY }}
-  TF_VAR_floating_ip_id: ${{ secrets.PASTURE_FLOATING_IP_ID }}
-  TF_VAR_floating_ip_address: ${{ secrets.PASTURE_FLOATING_IP_ADDRESS }}
+  TF_VAR_ssh_key_id: ${{ secrets.PASTURE_SSH_KEY_ID }}
+  TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
   TF_VAR_postgres_password: ${{ secrets.PASTURE_POSTGRES_PASSWORD }}
   TF_VAR_rp_id: ${{ secrets.PASTURE_RP_ID }}
   TF_VAR_origin: ${{ secrets.PASTURE_ORIGIN }}
@@ -56,7 +52,6 @@ jobs:
         env:
           HCLOUD_TOKEN: ${{ secrets.HETZNER_TOKEN }}
         run: |
-          # Capture IDs of any server whose name starts with "pasture-"
           OLD_IDS=$(hcloud server list -o columns=id,name | awk '/^[0-9]+ +pasture-/{print $1}' | tr '\n' ' ')
           echo "old_ids=${OLD_IDS}" >> "$GITHUB_OUTPUT"
           echo "Old pasture server IDs: ${OLD_IDS:-none}"
@@ -78,13 +73,13 @@ jobs:
         run: tofu apply -auto-approve tfplan
 
       - name: Wait for app to become healthy
-        env:
-          FLOATING_IP: ${{ secrets.PASTURE_FLOATING_IP_ADDRESS }}
+        working-directory: infra/pasture
         run: |
-          echo "Verifying Highcoo is reachable at http://${FLOATING_IP}:3001 ..."
+          SERVER_IP=$(tofu output -raw server_ipv6)
+          echo "Verifying Highcoo is reachable at http://${SERVER_IP} ..."
           for i in $(seq 1 30); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-              "http://${FLOATING_IP}:3001" 2>/dev/null || echo "000")
+              "http://${SERVER_IP}" 2>/dev/null || echo "000")
             echo "  attempt $i: HTTP $STATUS"
             if [[ "$STATUS" == "200" || "$STATUS" == "301" || "$STATUS" == "302" ]]; then
               echo "Healthy!"
@@ -104,21 +99,6 @@ jobs:
             echo "Deleting old pasture server ID=${ID} ..."
             hcloud server delete "$ID"
           done
-
-      - name: Clean up old SSH keys
-        env:
-          HCLOUD_TOKEN: ${{ secrets.HETZNER_TOKEN }}
-        run: |
-          TODAY=$(date -u +%Y-%m-%d)
-          # Delete any pasture-key-* that isn't today's key
-          hcloud ssh-key list -o columns=id,name \
-            | awk '/pasture-key-/{print $1, $2}' \
-            | while read ID NAME; do
-                if [[ "$NAME" != "pasture-key-${TODAY}" ]]; then
-                  echo "Removing old SSH key: $NAME (ID=$ID)"
-                  hcloud ssh-key delete "$ID" || true
-                fi
-              done
 
       - name: Output deployment info
         working-directory: infra/pasture

@@ -4,25 +4,19 @@ variable "hetzner_token" {
   sensitive   = true
 }
 
-variable "ssh_public_key" {
-  description = "SSH public key material to install on the VM"
+variable "cloudflare_api_token" {
+  description = "Cloudflare API token with Zone:DNS:Edit permission"
   type        = string
   sensitive   = true
 }
 
-variable "ssh_private_key" {
-  description = "SSH private key material for provisioning (used by Terraform/OpenTofu)"
-  type        = string
-  sensitive   = true
-}
-
-variable "floating_ip_id" {
-  description = "ID of the pre-existing Hetzner Floating IP to assign to the VM"
+variable "cloudflare_zone_id" {
+  description = "Cloudflare Zone ID for highcoo.studio"
   type        = string
 }
 
-variable "floating_ip_address" {
-  description = "The actual IP address of the Floating IP (used for health-check)"
+variable "ssh_key_id" {
+  description = "ID of the pre-existing Hetzner SSH key to install on the VM"
   type        = string
 }
 
@@ -45,7 +39,7 @@ variable "origin" {
 variable "server_type" {
   description = "Hetzner server type"
   type        = string
-  default     = "cx22"
+  default     = "cx23"
 }
 
 variable "location" {
@@ -57,7 +51,7 @@ variable "location" {
 variable "image" {
   description = "Hetzner OS image name"
   type        = string
-  default     = "fedora-41"
+  default     = "fedora-43"
 }
 
 variable "docker_image_tag" {
