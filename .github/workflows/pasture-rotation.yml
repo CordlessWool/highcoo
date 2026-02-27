@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       docker_image_tag:
-        description: "Highcoo Docker image tag to deploy"
+        description: 'Highcoo Docker image tag to deploy'
         required: false
-        default: "main"
+        default: 'latest'
 
 concurrency:
   group: pasture-rotation
@@ -20,7 +20,7 @@ env:
   TF_VAR_postgres_password: ${{ secrets.PASTURE_POSTGRES_PASSWORD }}
   TF_VAR_rp_id: ${{ secrets.PASTURE_RP_ID }}
   TF_VAR_origin: ${{ secrets.PASTURE_ORIGIN }}
-  TF_VAR_docker_image_tag: ${{ github.event.inputs.docker_image_tag || 'main' }}
+  TF_VAR_docker_image_tag: ${{ github.event.inputs.docker_image_tag || 'latest' }}
   # Backend credentials (if using S3-compatible remote state)
   AWS_ACCESS_KEY_ID: ${{ secrets.TOFU_STATE_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.TOFU_STATE_SECRET_KEY }}
@@ -38,7 +38,7 @@ jobs:
       - name: Install OpenTofu
         uses: opentofu/setup-opentofu@v1
         with:
-          tofu_version: "1.9.0"
+          tofu_version: '1.9.0'
 
       - name: Install Hetzner CLI (hcloud) for cleanup
         run: |
