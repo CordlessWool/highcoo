@@ -1,8 +1,8 @@
-import { env } from '$env/dynamic/private';
+import * as auth from '$lib/server/auth';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = () => {
 	return {
-		allowRegistration: env.ALLOW_REGISTRATION === 'true'
+		allowRegistration: auth.isRegistrationAllowed()
 	};
 };

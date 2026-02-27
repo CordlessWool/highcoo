@@ -28,7 +28,7 @@
 			});
 
 			if (verifyRes.ok) {
-				goto('/media');
+				goto(resolve('/media'));
 			} else {
 				const err = await verifyRes.json();
 				status = err.message ?? 'Login failed. Please try again.';

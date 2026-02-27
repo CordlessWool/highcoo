@@ -2,8 +2,11 @@ import type { RequestEvent } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { sha256 } from '@oslojs/crypto/sha2';
 import { encodeBase64url, encodeHexLowerCase } from '@oslojs/encoding';
+import { env } from '$env/dynamic/private';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+
+export const isRegistrationAllowed = () => env.ALLOW_REGISTRATION === 'true';
 
 const DAY_IN_MS = 1000 * 60 * 60 * 24;
 
