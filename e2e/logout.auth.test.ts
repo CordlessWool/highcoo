@@ -24,7 +24,7 @@ test('logout invalidates session and protected routes redirect to login', async 
 
 	// Register a fresh throwaway account
 	await page.goto('/auth/register');
-	await page.getByRole('button', { name: 'Register a new passkey' }).click();
+	await page.getByRole('button', { name: 'Register with passkey' }).click();
 	await page.waitForURL('/media');
 
 	// Verify protected routes are accessible while authenticated
