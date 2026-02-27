@@ -7,6 +7,7 @@ import type { Tag } from '$lib/logic/tag';
 import { MediaFilter } from '$lib/logic/media';
 import { Pagination } from '$lib/logic/pagination';
 import type { Media, PaginatedResult } from '$lib/server/db/repositories/types';
+import { generateSlug } from '$lib/logic/slug';
 
 const GetMediaInput = v.object({
 	filter: v.optional(MediaFilter),
@@ -59,7 +60,7 @@ const RemoveTagFromMediaInput = v.object({
 const PartialMedia = v.object({
 	id: v.string(),
 	name: v.optional(v.string()),
-	slug: v.optional(v.string()),
+	slug: v.optional(v.pipe(v.string(), v.nonEmpty())),
 	description: v.optional(v.nullable(v.string()))
 });
 
@@ -77,6 +78,9 @@ export const removeTagFromMedia = command(RemoveTagFromMediaInput, async (input)
 
 export const patchMedia = command(PartialMedia, async ({ id, ...data }) => {
 	try {
+		if (data.name && !(await hasPublished(id))) {
+			data.slug = generateSlug(data.name.toLocaleLowerCase());
+		}
 		await mediaRepository.patch(id, data);
 		const updated = await mediaRepository.findById(id);
 		if (updated) getMedia(id).set(updated);
