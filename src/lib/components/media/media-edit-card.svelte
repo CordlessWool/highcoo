@@ -7,7 +7,7 @@
 	import { resolve } from '$app/paths';
 	import SlugInput from './slug-input.svelte';
 	import MediaTagInput from './media-tag-input.svelte';
-	import { patchMedia, getMedia, publishMedia } from './media.remote';
+	import { patchMedia, getMedia, publishMedia, hasPublished } from './media.remote';
 
 	type Props = {
 		id: string;
@@ -84,9 +84,10 @@
 
 					{#if media}
 						<SlugInput
-							selected={[media]}
-							onsave={async (slugs) => {
-								await Promise.all(slugs.map(({ id: sid, slug }) => patchMedia({ id: sid, slug })));
+							value={media.slug ?? ''}
+							isPublished={await hasPublished(id)}
+							onsave={async (slug) => {
+								await patchMedia({ id, slug });
 							}}
 						/>
 					{/if}

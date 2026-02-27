@@ -14,7 +14,7 @@ export type {
 	NewTagContent
 };
 export type NewFile = File;
-export type NewMedia = Omit<Media, 'id' | 'dirty' | 'publishedAt' | 'updatedAt' | 'deletedAt'>;
+export type NewMedia = Omit<Media, 'id' | 'draftId' | 'dirty' | 'publishedAt' | 'updatedAt' | 'deletedAt'>;
 
 export type Pagination = {
 	limit?: number;
@@ -72,6 +72,7 @@ export interface MediaRepository {
 	getTags(mediaId: string): Promise<Tag[]>;
 	getTagsForMany(mediaIds: string[]): Promise<Map<string, Tag[]>>;
 	publish(ids: string[]): Promise<number>;
+	hasPublished(ids: string[]): Promise<Map<string, boolean>>;
 	findPublishedBySlug(slug: string): Promise<File | null>;
 	findAllPublished(pagination?: Pagination): Promise<PaginatedResult<PublishedMedia>>;
 	findPublishedMetaBySlug(slug: string): Promise<PublishedMedia | null>;

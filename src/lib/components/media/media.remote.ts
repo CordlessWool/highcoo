@@ -106,6 +106,11 @@ export const publishMedia = command(v.array(v.string()), async (ids) => {
 	return count;
 });
 
+export const hasPublished = query.batch(v.string(), async (ids: string[]) => {
+	const map = await mediaRepository.hasPublished(ids);
+	return (id: string): boolean => map.get(id) ?? false;
+});
+
 export const softDeleteMedia = command(v.array(v.string()), async (ids) => {
 	await Promise.all(ids.map((id) => mediaRepository.softDelete(id)));
 });

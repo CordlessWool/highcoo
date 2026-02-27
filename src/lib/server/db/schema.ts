@@ -9,7 +9,8 @@ import {
 	text,
 	timestamp,
 	uniqueIndex,
-	uuid
+	uuid,
+	type AnyPgColumn
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { WatermarkPosition } from '../../logic/settings';
@@ -52,6 +53,9 @@ export const media = pgTable(
 		name: text('name').notNull(),
 		slug: text('slug').notNull(),
 		description: text('description'),
+		draftId: uuid('draft_id')
+			.notNull()
+			.references((): AnyPgColumn => media.id),
 		dirty: boolean('dirty').notNull().default(true),
 		publishedAt: timestamp('published_at'),
 		updatedAt: timestamp('updated_at').notNull(),

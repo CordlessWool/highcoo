@@ -106,10 +106,11 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 	return {
 	async insert(data: NewMedia): Promise<string> {
 		const now = new Date();
+		const [{ newId }] = await db.select({ newId: sql<string>`uuidv7()` });
 		try {
 			const [row] = await db
 				.insert(table.media)
-				.values({ ...data, updatedAt: now })
+				.values({ id: newId, draftId: newId, ...data, updatedAt: now })
 				.returning({ id: table.media.id });
 			return row.id;
 		} catch (error: unknown) {
@@ -118,7 +119,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 
 			const [row] = await db
 				.insert(table.media)
-				.values({ ...data, slug: `${data.slug}-${nanoid(6)}`, updatedAt: now })
+				.values({ id: newId, draftId: newId, ...data, slug: `${data.slug}-${nanoid(6)}`, updatedAt: now })
 				.returning({ id: table.media.id });
 			return row.id;
 		}
@@ -354,6 +355,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 					name: draft.name,
 					slug: draft.slug,
 					description: draft.description,
+					draftId: draft.id,
 					dirty: false,
 					publishedAt: now,
 					updatedAt: now
@@ -436,5 +438,15 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 			.orderBy(desc(table.media.publishedAt))
 			.limit(1);
 		return result[0]?.file ?? null;
+	},
+
+	async hasPublished(ids: string[]): Promise<Map<string, boolean>> {
+		if (ids.length === 0) return new Map();
+		const rows = await db
+			.selectDistinct({ draftId: table.media.draftId })
+			.from(table.media)
+			.where(and(inArray(table.media.draftId, ids), isPublished));
+		const found = new Set(rows.map((r) => r.draftId));
+		return new Map(ids.map((id) => [id, found.has(id)]));
 	}
 }};
