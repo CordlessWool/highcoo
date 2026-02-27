@@ -42,7 +42,7 @@ export const PUT: RequestHandler = async (event) => {
 	const challenge = event.cookies.get('webauthn-challenge');
 
 	if (!challenge) {
-		error(400, 'Missing challenge');
+		error(400, 'Session expired. Please refresh and try again.');
 	}
 
 	const body = await event.request.json();
@@ -56,7 +56,7 @@ export const PUT: RequestHandler = async (event) => {
 	});
 
 	if (!verification.verified || !verification.registrationInfo) {
-		error(400, 'Verification failed');
+		error(400, 'Verification failed. Please try again.');
 	}
 
 	const { credential } = verification.registrationInfo;

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Alert from '$lib/components/ui/alert/index.js';
 	import { FieldGroup, Field, FieldDescription } from '$lib/components/ui/field/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { startRegistration } from '@simplewebauthn/browser';
 	import { goto } from '$app/navigation';
-	import { KeyRound } from '@lucide/svelte';
+	import { KeyRound, TriangleAlert } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 
 	let status = $state<string | null>(null);
@@ -27,10 +28,14 @@
 				goto('/media');
 			} else {
 				const err = await verifyRes.json();
-				status = err.message ?? 'Registration failed';
+				status = err.message ?? 'Registration failed. Please try again.';
 			}
 		} catch (e) {
-			status = e instanceof Error ? e.message : 'Registration failed';
+			if (e instanceof DOMException && e.name === 'NotAllowedError') {
+				status = 'Registration was cancelled or timed out.';
+			} else {
+				status = 'Registration failed. Please try again.';
+			}
 		}
 	};
 </script>
@@ -46,17 +51,19 @@
 								<h1 class="text-2xl font-bold">Create an account</h1>
 								<p class="text-balance text-muted-foreground">Register a passkey for Highcoo</p>
 							</div>
-
+							{#if status}
+								<Alert.Root variant="destructive">
+									<TriangleAlert />
+									<Alert.Title>Registration failed</Alert.Title>
+									<Alert.Description>{status}</Alert.Description>
+								</Alert.Root>
+							{/if}
 							<Field>
 								<Button onclick={handleRegister} class="w-full">
 									<KeyRound class="h-4 w-4" />
 									Register with passkey
 								</Button>
 							</Field>
-
-							{#if status}
-								<p class="text-center text-sm text-destructive">{status}</p>
-							{/if}
 
 							<FieldDescription class="text-center">
 								Already have an account? <a

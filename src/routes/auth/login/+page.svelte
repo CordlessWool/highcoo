@@ -1,10 +1,11 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Alert from '$lib/components/ui/alert/index.js';
 	import { FieldGroup, Field, FieldDescription } from '$lib/components/ui/field/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { startAuthentication } from '@simplewebauthn/browser';
 	import { goto } from '$app/navigation';
-	import { KeyRound } from '@lucide/svelte';
+	import { KeyRound, TriangleAlert } from '@lucide/svelte';
 	import type { PageProps } from './$types';
 	import { resolve } from '$app/paths';
 
@@ -30,10 +31,14 @@
 				goto('/media');
 			} else {
 				const err = await verifyRes.json();
-				status = err.message ?? 'Login failed';
+				status = err.message ?? 'Login failed. Please try again.';
 			}
 		} catch (e) {
-			status = e instanceof Error ? e.message : 'Login failed';
+			if (e instanceof DOMException && e.name === 'NotAllowedError') {
+				status = 'Authentication was cancelled or timed out.';
+			} else {
+				status = 'Login failed. Please try again.';
+			}
 		}
 	};
 </script>
@@ -49,17 +54,19 @@
 								<h1 class="text-2xl font-bold">Welcome back</h1>
 								<p class="text-balance text-muted-foreground">Login to your Highcoo account</p>
 							</div>
-
+							{#if status}
+								<Alert.Root variant="destructive">
+									<TriangleAlert />
+									<Alert.Title>Sign in failed</Alert.Title>
+									<Alert.Description>{status}</Alert.Description>
+								</Alert.Root>
+							{/if}
 							<Field>
 								<Button onclick={handleLogin} class="w-full">
 									<KeyRound class="h-4 w-4" />
 									Sign in with passkey
 								</Button>
 							</Field>
-
-							{#if status}
-								<p class="text-center text-sm text-destructive">{status}</p>
-							{/if}
 
 							{#if data.allowRegistration}
 								<FieldDescription class="text-center">
