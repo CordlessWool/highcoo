@@ -106,7 +106,7 @@ export const createMediaRepository = (db: typeof database): MediaRepository => {
 	return {
 	async insert(data: NewMedia): Promise<string> {
 		const now = new Date();
-		const [{ newId }] = await db.select({ newId: sql<string>`uuidv7()` });
+		const [{ id: newId }] = await db.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
 		try {
 			const [row] = await db
 				.insert(table.media)
