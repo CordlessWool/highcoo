@@ -1,5 +1,4 @@
 import { json, error } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
@@ -7,10 +6,8 @@ import * as auth from '$lib/server/auth';
 import { rpName, rpID, origin } from '$lib/server/webauthn';
 import type { RequestHandler } from './$types';
 
-const allowRegistration = env.ALLOW_REGISTRATION === 'true';
-
 export const POST: RequestHandler = async (event) => {
-	if (!allowRegistration) {
+	if (!auth.isRegistrationAllowed()) {
 		error(403, 'Registration is disabled');
 	}
 
@@ -35,14 +32,14 @@ export const POST: RequestHandler = async (event) => {
 };
 
 export const PUT: RequestHandler = async (event) => {
-	if (!allowRegistration) {
+	if (!auth.isRegistrationAllowed()) {
 		error(403, 'Registration is disabled');
 	}
 
 	const challenge = event.cookies.get('webauthn-challenge');
 
 	if (!challenge) {
-		error(400, 'Missing challenge');
+		error(400, 'Session expired. Please refresh and try again.');
 	}
 
 	const body = await event.request.json();
@@ -56,7 +53,7 @@ export const PUT: RequestHandler = async (event) => {
 	});
 
 	if (!verification.verified || !verification.registrationInfo) {
-		error(400, 'Verification failed');
+		error(400, 'Verification failed. Please try again.');
 	}
 
 	const { credential } = verification.registrationInfo;

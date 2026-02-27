@@ -31,7 +31,7 @@ export const PUT: RequestHandler = async (event) => {
 	const challenge = event.cookies.get('webauthn-challenge');
 
 	if (!challenge) {
-		error(400, 'Missing challenge');
+		error(400, 'Session expired. Please refresh and try again.');
 	}
 
 	const body = await event.request.json();
@@ -43,7 +43,7 @@ export const PUT: RequestHandler = async (event) => {
 		.limit(1);
 
 	if (!credentialRecord) {
-		error(400, 'Unknown credential');
+		error(400, 'No passkey found for this device.');
 	}
 
 	const credential: WebAuthnCredential = {
@@ -63,7 +63,7 @@ export const PUT: RequestHandler = async (event) => {
 	});
 
 	if (!verification.verified) {
-		error(400, 'Verification failed');
+		error(400, 'Verification failed. Please try again.');
 	}
 
 	// Update counter

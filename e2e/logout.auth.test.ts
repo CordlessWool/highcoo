@@ -2,7 +2,10 @@ import { test, expect } from '@playwright/test';
 
 // Uses its own isolated browser context with a throwaway passkey so the shared
 // session in .auth.json is not invalidated for subsequent tests.
-test('logout invalidates session and protected routes redirect to login', async ({ browser, baseURL }) => {
+test('logout invalidates session and protected routes redirect to login', async ({
+	browser,
+	baseURL
+}) => {
 	const context = await browser.newContext({ baseURL });
 	const page = await context.newPage();
 
@@ -20,8 +23,8 @@ test('logout invalidates session and protected routes redirect to login', async 
 	});
 
 	// Register a fresh throwaway account
-	await page.goto('/auth/login');
-	await page.getByRole('button', { name: 'Register a new passkey' }).click();
+	await page.goto('/auth/register');
+	await page.getByRole('button', { name: 'Register with passkey' }).click();
 	await page.waitForURL('/media');
 
 	// Verify protected routes are accessible while authenticated

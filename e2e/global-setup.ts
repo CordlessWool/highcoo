@@ -37,8 +37,8 @@ export default async function globalSetup() {
 	});
 
 	// Register and log in
-	await page.goto(`${BASE_URL}/auth/login`);
-	await page.getByRole('button', { name: 'Register a new passkey' }).click();
+	await page.goto(`${BASE_URL}/auth/register`);
+	await page.getByRole('button', { name: 'Register with passkey' }).click();
 	await page.waitForURL(`${BASE_URL}/media`);
 
 	// Save session cookies for reuse in seeding and authenticated projects

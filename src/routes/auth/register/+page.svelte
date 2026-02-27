@@ -3,41 +3,38 @@
 	import * as Alert from '$lib/components/ui/alert/index.js';
 	import { FieldGroup, Field, FieldDescription } from '$lib/components/ui/field/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
-	import { startAuthentication } from '@simplewebauthn/browser';
+	import { startRegistration } from '@simplewebauthn/browser';
 	import { goto } from '$app/navigation';
 	import { KeyRound, TriangleAlert } from '@lucide/svelte';
-	import type { PageProps } from './$types';
 	import { resolve } from '$app/paths';
-
-	const { data }: PageProps = $props();
 
 	let status = $state<string | null>(null);
 
-	const handleLogin = async () => {
+	const handleRegister = async () => {
 		try {
 			status = null;
-			const optionsRes = await fetch('/auth/login', { method: 'POST' });
+			const optionsRes = await fetch('/auth/register', { method: 'POST' });
 			const options = await optionsRes.json();
 
-			const assertion = await startAuthentication({ optionsJSON: options });
+			const attestation = await startRegistration({ optionsJSON: options });
 
-			const verifyRes = await fetch('/auth/login', {
+			const verifyRes = await fetch('/auth/register', {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(assertion)
+				body: JSON.stringify(attestation)
 			});
 
 			if (verifyRes.ok) {
 				goto(resolve('/media'));
 			} else {
 				const err = await verifyRes.json();
-				status = err.message ?? 'Login failed. Please try again.';
+				status = err.message ?? 'Registration failed. Please try again.';
 			}
 		} catch (e) {
 			if (e instanceof DOMException && e.name === 'NotAllowedError') {
-				status = 'Authentication was cancelled or timed out.';
+				status = 'Registration was cancelled or timed out.';
 			} else {
-				status = 'Login failed. Please try again.';
+				status = 'Registration failed. Please try again.';
 			}
 		}
 	};
@@ -51,31 +48,29 @@
 					<form class="flex items-center p-6 md:col-span-2 md:p-8">
 						<FieldGroup>
 							<div class="flex flex-col items-center gap-2 text-center">
-								<h1 class="text-2xl font-bold">Welcome back</h1>
-								<p class="text-balance text-muted-foreground">Login to your Highcoo account</p>
+								<h1 class="text-2xl font-bold">Create an account</h1>
+								<p class="text-balance text-muted-foreground">Register a passkey for Highcoo</p>
 							</div>
 							{#if status}
 								<Alert.Root variant="destructive">
 									<TriangleAlert />
-									<Alert.Title>Sign in failed</Alert.Title>
+									<Alert.Title>Registration failed</Alert.Title>
 									<Alert.Description>{status}</Alert.Description>
 								</Alert.Root>
 							{/if}
 							<Field>
-								<Button onclick={handleLogin} class="w-full">
+								<Button onclick={handleRegister} class="w-full">
 									<KeyRound class="h-4 w-4" />
-									Sign in with passkey
+									Register with passkey
 								</Button>
 							</Field>
 
-							{#if data.allowRegistration}
-								<FieldDescription class="text-center">
-									Don't have an account? <a
-										href={resolve('/auth/register')}
-										class="underline underline-offset-4">Sign up</a
-									>
-								</FieldDescription>
-							{/if}
+							<FieldDescription class="text-center">
+								Already have an account? <a
+									href={resolve('/auth/login')}
+									class="underline underline-offset-4">Sign in</a
+								>
+							</FieldDescription>
 						</FieldGroup>
 					</form>
 					<div class="relative hidden bg-muted p-0 md:col-span-3 md:block">
