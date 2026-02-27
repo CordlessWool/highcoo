@@ -29,7 +29,7 @@
 
 	const handleSave = async (val: string) => {
 		const slug = generateSlug(val);
-		if (!slug) return;
+		if (!slug) throw new Error('Slug must not be empty');
 		await onsave(slug);
 	};
 </script>
