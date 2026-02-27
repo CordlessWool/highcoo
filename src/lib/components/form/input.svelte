@@ -2,13 +2,15 @@
 	import * as InputGroup from '$lib/components/ui/input-group';
 	import Indicator from './indicator.svelte';
 	import { debounce, SaveStatus, getErrorMessage } from './helper';
-	import type { ComponentProps } from 'svelte';
+	import type { ComponentProps, Snippet } from 'svelte';
 
 	type Props = ComponentProps<typeof InputGroup.Input> & {
 		label: string;
 		onsave: (value: string) => Promise<void>;
 		delay?: number;
 		info?: string;
+		actions?: Snippet;
+		hint?: Snippet;
 	};
 
 	let {
@@ -17,6 +19,8 @@
 		value = $bindable(),
 		delay = 500,
 		info,
+		actions,
+		hint,
 		oninput,
 		...props
 	}: Props = $props();
@@ -52,11 +56,16 @@
 	<InputGroup.Root>
 		<InputGroup.Addon align="block-start">
 			<InputGroup.Label>{label}</InputGroup.Label>
-			<Indicator class="ms-auto" bind:status {info} />
+			<div class="ms-auto flex items-center">
+				{@render actions?.()}
+				<Indicator bind:status {info} />
+			</div>
 		</InputGroup.Addon>
 		<InputGroup.Input bind:value oninput={handleInput} placeholder={label} {...props} />
 	</InputGroup.Root>
 	{#if status === SaveStatus.Error && errorMessage}
 		<p class="text-xs text-destructive">{errorMessage}</p>
+	{:else}
+		{@render hint?.()}
 	{/if}
 </div>
