@@ -1,5 +1,18 @@
 # highcoo
 
+## 1.3.0
+
+### Minor Changes
+
+- 6bbecc1: Update login screen ui
+- 4de59d1: Add `draftId` column to media table linking published snapshots back to their draft. Add `hasPublished` query for checking publish status. Copy button in slug input shows tooltip when media is not yet published.
+- 29cc052: Edit slug after name if image was never published
+- 3f0d896: Improve status message and splitup login and registration.
+
+### Patch Changes
+
+- 2054204: Use logo.png as favicon
+
 ## 1.2.4
 
 ### Patch Changes
